@@ -1,0 +1,22 @@
+{
+  "name": "unipaper-bridge",
+  "version": "0.1.0",
+  "description": "Resolve papers, find lawful open access, and hand institutional login back to each user's own browser.",
+  "license": "MIT",
+  "keywords": ["research", "papers", "library", "open-access", "doi"],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "UniPaper Bridge",
+    "shortDescription": "Open papers with your own university access",
+    "longDescription": "Identifies scholarly papers, checks lawful open-access locations, and constructs supported university library links without collecting credentials or redistributing licensed PDFs.",
+    "developerName": "UniPaper Bridge contributors",
+    "category": "Research",
+    "capabilities": ["Read"],
+    "defaultPrompt": [
+      "Find this paper by DOI and check for an open-access copy.",
+      "경희대 서울캠퍼스 도서관 링크로 이 논문을 열 수 있게 도와줘."
+    ],
+    "brandColor": "#7C3AED"
+  }
+}

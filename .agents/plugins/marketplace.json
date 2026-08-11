@@ -1,0 +1,20 @@
+{
+  "name": "unipaper-local",
+  "interface": {
+    "displayName": "UniPaper Local"
+  },
+  "plugins": [
+    {
+      "name": "unipaper-bridge",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Research"
+    }
+  ]
+}
