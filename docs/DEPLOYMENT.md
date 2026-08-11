@@ -1,5 +1,16 @@
 # Deployment guide
 
+## Current public deployment
+
+- Service: `https://unipaper-bridge-mcp.kimmiso0821.chatgpt.site`
+- MCP endpoint: `https://unipaper-bridge-mcp.kimmiso0821.chatgpt.site/api/mcp`
+- Health check: `https://unipaper-bridge-mcp.kimmiso0821.chatgpt.site/healthz`
+- Deployed Worker source: [`deploy/sites-worker.js`](../deploy/sites-worker.js)
+
+The hosted Worker uses `/api/mcp` because the hosting platform reserves the exact `/mcp` route. This remains a stable Streamable HTTP MCP URL. The Node/Express and Docker variants continue to use `/mcp` by default.
+
+The public deployment can resolve Crossref metadata and construct KHU links immediately. Set `OPENALEX_API_KEY` through the host's secret manager to activate `find_open_access`; do not commit the key.
+
 ## Required production shape
 
 - Node.js 20 or later.

@@ -4,6 +4,20 @@
 
 현재 0.1 MVP에는 경희대학교 서울캠퍼스와 국제캠퍼스 어댑터가 들어 있습니다. 다른 대학은 공개된 교외접속 규정을 확인한 뒤 `src/institutions.ts`에 어댑터를 추가할 수 있습니다.
 
+## 바로 연결하기
+
+공개 배포된 MCP 주소:
+
+```text
+https://unipaper-bridge-mcp.kimmiso0821.chatgpt.site/api/mcp
+```
+
+상태 페이지는 [unipaper-bridge-mcp.kimmiso0821.chatgpt.site](https://unipaper-bridge-mcp.kimmiso0821.chatgpt.site), 상태 확인 API는 [`/healthz`](https://unipaper-bridge-mcp.kimmiso0821.chatgpt.site/healthz)입니다.
+
+ChatGPT에서 **Settings → Security and login → Developer mode**를 켠 뒤 Plugins에서 새 연결을 추가하고 위 MCP 주소 전체를 입력하세요. 연결 시 `resolve_paper`, `find_open_access`, `list_institutions`, `build_institution_link` 네 도구가 표시되어야 합니다.
+
+현재 공개 배포에서는 Crossref 조회와 경희대 링크 생성이 활성화되어 있습니다. `find_open_access`는 운영 환경에 `OPENALEX_API_KEY`가 설정되기 전까지 안전한 구성 오류를 반환합니다.
+
 ## 안전 경계
 
 이 서버가 하는 일:
@@ -97,7 +111,7 @@ codex plugin marketplace add OWNER/REPOSITORY
 
 공개 ChatGPT 연결은 로컬 stdio가 아니라 안정적인 HTTPS Streamable HTTP 엔드포인트가 필요합니다.
 
-1. [배포 가이드](docs/DEPLOYMENT.md)에 따라 `/mcp`를 HTTPS로 배포합니다.
+1. 위 공개 MCP 주소를 사용하거나 [배포 가이드](docs/DEPLOYMENT.md)에 따라 직접 HTTPS로 배포합니다.
 2. ChatGPT 설정에서 Developer mode를 켜고 MCP URL을 연결합니다.
 3. 생성된 `plugin_asdk_app...` 기술 ID로 `.app.json`을 추가합니다.
 4. 운영자 신원, 공개 웹사이트, 개인정보처리방침·이용약관 URL, 지원 연락처를 매니페스트에 채웁니다.
@@ -127,6 +141,8 @@ npm run check
 ```
 
 현재 테스트는 DOI 정규화, Crossref/OpenAlex 응답 변환, URL 안전성, KHU 링크 생성, MCP 도구 스키마와 안전 주석을 검증합니다.
+
+현재 공개 배포에 사용된 buildless Worker 구현은 [`deploy/sites-worker.js`](deploy/sites-worker.js)에 함께 공개되어 있습니다. Node/Express 서버와 동일한 네 도구 및 브라우저 인증 경계를 유지하며 공개 엔드포인트는 `/api/mcp`입니다.
 
 ## English summary
 
