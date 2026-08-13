@@ -20,6 +20,8 @@ const portableDirectory = join(localDirectory, "khu-auth-helper-portable");
 const portableEntry = join(portableDirectory, "dist", "index.js");
 const localMCPDirectory = join(localDirectory, "khu-auth-mcp");
 const localMCPEntry = join(localMCPDirectory, "dist", "index.js");
+const zoteroMCPDirectory = join(localDirectory, "zotero-mcp");
+const zoteroMCPEntry = join(zoteroMCPDirectory, "dist", "index.js");
 const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
 
 function run(command, args, options = {}) {
@@ -40,6 +42,7 @@ function installAndBuild(packageDirectory) {
 
 function buildAll() {
   installAndBuild(localMCPDirectory);
+  installAndBuild(zoteroMCPDirectory);
   installAndBuild(portableDirectory);
   if (process.platform === "darwin") {
     run("sh", [join(macHelperDirectory, "install.sh"), "build"]);
@@ -48,7 +51,13 @@ function buildAll() {
 
 function ensureBuilt() {
   const expected = process.platform === "darwin" ? macExecutable : portableEntry;
-  if (!existsSync(expected) || !existsSync(localMCPEntry)) buildAll();
+  if (
+    !existsSync(expected) ||
+    !existsSync(localMCPEntry) ||
+    !existsSync(zoteroMCPEntry)
+  ) {
+    buildAll();
+  }
 }
 
 function installPortableBrowser() {
@@ -85,8 +94,10 @@ switch (action) {
     break;
   case "test":
     installAndBuild(localMCPDirectory);
+    installAndBuild(zoteroMCPDirectory);
     installAndBuild(portableDirectory);
     run(npmCommand, ["test", "--prefix", localMCPDirectory]);
+    run(npmCommand, ["test", "--prefix", zoteroMCPDirectory]);
     run(npmCommand, ["test", "--prefix", portableDirectory]);
     if (process.platform === "darwin") {
       run("swift", ["run", "--package-path", macHelperDirectory, "khu-auth-self-test"]);

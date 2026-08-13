@@ -33,3 +33,12 @@ project configuration files.
 Each person must run setup on their own computer with their own authorized KHU
 account. The credential store and browser profile are per-user and must not be
 copied, uploaded, or shared with another person.
+
+The optional local Zotero MCP talks only to Zotero Desktop on loopback port
+`23119`. After the user opts in, it may read bibliographic metadata for DOI-
+first duplicate detection and write selected research records to the currently
+selected editable library or collection. It asks Zotero to retrieve a PDF only
+for verified open-access material. It may attach one local PDF only when the
+user lawfully supplied or selected that individual file. Local file paths,
+Zotero library contents, and attachments are not sent to the hosted UniPaper
+server or returned as tool output.

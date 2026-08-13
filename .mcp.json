@@ -6,5 +6,9 @@
   "unipaper-khu-local": {
     "command": "node",
     "args": ["${PLUGIN_ROOT}/local/khu-auth-mcp/dist/index.js"]
+  },
+  "unipaper-zotero-local": {
+    "command": "node",
+    "args": ["${PLUGIN_ROOT}/local/zotero-mcp/dist/index.js"]
   }
 }

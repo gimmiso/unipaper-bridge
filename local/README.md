@@ -1,4 +1,4 @@
-# Local KHU authentication (macOS, Windows, and Linux)
+# Local KHU authentication and Zotero capture
 
 This directory is deliberately separate from the public UniPaper Bridge server.
 It contains the only code allowed to read a KHU credential, and that code runs
@@ -15,6 +15,8 @@ local MCP: public paper URL
 ```
 
 - `khu-auth-mcp` exposes one action: `open_khu_paper`.
+- `zotero-mcp` exposes Zotero readiness, persisted automatic-save consent, and
+  DOI-first deduplicated saves to the currently selected Zotero destination.
 - It has no credential getter and never starts the helper with an ID or password.
 - Both helpers accept a password only from a no-echo terminal prompt.
 - macOS stores a non-synchronizing generic-password item under service
@@ -67,6 +69,8 @@ sudo npx playwright install-deps chromium
 ## Build and one-time setup
 
 Requirements: Node.js 20 or newer, plus the platform requirement in the table.
+Install Zotero Desktop if automatic research capture is desired. Zotero may be
+closed during installation, but it must be open while saving papers.
 
 From the repository root:
 
@@ -114,7 +118,7 @@ codex plugin add unipaper-bridge@unipaper-local
 ```
 
 Restart the desktop app and start a new conversation. The installed bundle
-provides the normal paper-research workflow and both MCP servers. The research
+provides the normal paper-research workflow and all three MCP servers. The research
 skill first uses ordinary discovery and lawful open full text. It invokes
 `open_khu_paper` automatically only when required full text remains unreadable;
 the user does not choose a separate KHU skill.
@@ -124,6 +128,13 @@ If the analysis requires licensed full text, the only unavoidable handoff is
 for the user to privately attach the individually downloaded PDF from the opened
 browser. The skill then resumes the original analysis without repeating
 discovery.
+
+When the user explicitly enables automatic Zotero capture, the preference is
+stored locally without credentials. The workflow then saves only material
+papers after DOI-first duplicate checks. Zotero may fetch verified OA files.
+Licensed files remain a user-controlled handoff: the KHU browser opens the
+paper, and only an individual PDF the user lawfully supplies or selects may be
+attached. The Zotero MCP never scans Downloads or receives the KHU session.
 
 ## Sharing with other users
 

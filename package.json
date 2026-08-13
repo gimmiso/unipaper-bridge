@@ -18,7 +18,7 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "build:local:node": "npm ci --prefix local/khu-auth-mcp && npm run build --prefix local/khu-auth-mcp",
+    "build:local:node": "npm ci --prefix local/khu-auth-mcp && npm run build --prefix local/khu-auth-mcp && npm ci --prefix local/zotero-mcp && npm run build --prefix local/zotero-mcp",
     "build:portable": "npm ci --prefix local/khu-auth-helper-portable && npm run build --prefix local/khu-auth-helper-portable",
     "build:khu-helper": "node local/scripts/khu-helper.mjs build",
     "dev": "tsx src/index.ts",

@@ -9,10 +9,10 @@
 - Upstream API keys are never returned in structured or text tool results.
 - Hosted MCP tools are read-only and non-destructive.
 
-## Optional local KHU helper
+## Optional local components
 
 The optional code under `local/` is a separate trust domain and is excluded from
-the cloud Docker build. Its local MCP exposes only `open_khu_paper`; it has no
+the cloud Docker build. The KHU MCP exposes only `open_khu_paper`; it has no
 credential-returning tool. A helper retrieves a credential only after its
 isolated browser reaches the exact KHU HTTPS login page, and passes it directly
 to that page without stdout, stderr, logs, or MCP responses.
@@ -42,6 +42,13 @@ The helper is not a zero-knowledge authentication system: its process and the
 browser content process must briefly hold the credential to submit it to KHU.
 The enforced guarantee is that no credential-return path exists from the helper
 to Node, MCP, the cloud bridge, or the model.
+
+The Zotero MCP is a separate loopback-only client for Zotero Desktop. It exposes
+readiness, opt-in configuration, and a DOI-first deduplicated paper save. It can
+ask Zotero for a verified OA attachment or upload one user-selected local PDF,
+but it never receives a KHU credential, cookie, proxy session, or browser
+profile. It does not automate licensed downloads, scan download folders, or
+return PDF bytes, local paths, or private library contents to the model.
 
 ## Operator responsibilities
 

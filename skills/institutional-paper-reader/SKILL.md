@@ -1,6 +1,6 @@
 ---
 name: institutional-paper-reader
-description: Automatically find, identify, access, read, and analyse scholarly papers using ordinary research sources, lawful open-access copies, and a user's own university entitlement as a last-mile fallback. Use for paper discovery, literature searches, citation verification, DOI/title requests, full-text evidence extraction, paywalls, or research analysis that depends on primary papers—even when the user does not mention this skill, UniPaper, KHU, or library access. Orchestrate UniPaper Bridge and the local KHU opener without asking the user to choose tools; never collect credentials or automate licensed downloads.
+description: Automatically find, identify, access, read, analyse, and optionally preserve important scholarly papers in Zotero using ordinary research sources, lawful open-access copies, and a user's own university entitlement as a last-mile fallback. Use for paper discovery, literature searches, citation verification, DOI/title requests, full-text evidence extraction, paywalls, research analysis that depends on primary papers, or a standing request to save core research sources—even when the user does not mention this skill, UniPaper, KHU, or library access. Orchestrate UniPaper Bridge, the local KHU opener, and consented Zotero capture without asking the user to choose tools; never collect credentials or automate licensed downloads.
 ---
 
 # Institutional Paper Reader
@@ -29,6 +29,9 @@ For every paper whose contents materially affect the answer, follow this order:
    `abstract/metadata only` limitation and do not open institutional access.
 6. If full text is necessary but remains unreadable, invoke the local
    institutional fallback automatically as described below.
+7. Before completing the research answer, persist every material paper to
+   Zotero when the user's automatic-save preference is enabled or the current
+   prompt explicitly authorises the Zotero write.
 
 Do not stop after returning a DOI, OA candidate, or proxy link when the user's
 actual request requires reading and analysing the paper.
@@ -75,6 +78,44 @@ actual request requires reading and analysing the paper.
 Do not ask the user whether to “try KHU” when full text is required, the paper
 is inaccessible, the local tool is available, and their KHU campus is already
 known. That decision belongs to this workflow.
+
+## Preserve important evidence in Zotero
+
+1. Call `zotero_research_status` once near the start of a paper-research task.
+   Treat `auto_save_enabled: true` as the user's standing authorisation for this
+   workflow. If it is false, write only when the current prompt explicitly asks
+   to add or save papers.
+2. Call `configure_zotero_autosave` only when the user explicitly asks to enable
+   or disable future automatic saves.
+3. A paper materially supports the work when it is cited as direct evidence in
+   the final answer, is a closest competing paper, supplies a reused method or
+   dataset, or contains a result or limitation that changes the conclusion.
+4. Do not save every search result, incidental citation, unresolved title
+   match, background reference copied from another paper, or rejected screening
+   candidate. Do not import an entire bibliography, issue, book, or search dump.
+5. Call `save_research_paper_to_zotero` once for each material paper. The tool
+   performs DOI-first deduplication and falls back to normalized title and year.
+   Reuse an existing record instead of creating a duplicate.
+6. Use `attachment_mode: oa` only after verifying that the paper is lawfully
+   open access. Let Zotero retrieve the OA file. The local tool applies
+   `fulltext-oa` after successful attachment; provide only concise topic or
+   project tags.
+7. Use `attachment_mode: user-pdf` only for an individually selected PDF that
+   the user lawfully downloaded or supplied. The local tool applies
+   `fulltext-user` after successful attachment. Never pass a credential, cookie,
+   browser profile, proxy URL, or licensed publisher URL as an attachment source.
+8. For a decisive paywalled paper whose PDF has not been supplied, use
+   `attachment_mode: metadata-only`; the local tool applies `needs-fulltext`.
+   The KHU browser
+   may open the paper for the user, but that alone does not attach or expose the
+   file. When the user supplies the PDF, add it through `user-pdf` mode if the
+   record is new; if the record already exists without a PDF, report that Zotero
+   needs a manual attachment rather than creating a duplicate.
+9. A successful Zotero save does not prove the full text was read. Keep the
+   evidence-access label based on the content actually inspected.
+10. If Zotero is closed or unavailable, continue the research. Mention the
+    unsaved material papers once at the end instead of repeatedly interrupting
+    the user.
 
 ## Analyse only the evidence actually available
 

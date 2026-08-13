@@ -46,12 +46,16 @@ jobs:
           cache-dependency-path: |
             local/khu-auth-helper-portable/package-lock.json
             local/khu-auth-mcp/package-lock.json
+            local/zotero-mcp/package-lock.json
       - run: npm ci --prefix local/khu-auth-helper-portable
       - run: npm run build --prefix local/khu-auth-helper-portable
       - run: npm test --prefix local/khu-auth-helper-portable
       - run: npm ci --prefix local/khu-auth-mcp
       - run: npm run build --prefix local/khu-auth-mcp
       - run: npm test --prefix local/khu-auth-mcp
+      - run: npm ci --prefix local/zotero-mcp
+      - run: npm run build --prefix local/zotero-mcp
+      - run: npm test --prefix local/zotero-mcp
 
   macos-native:
     name: Native macOS helper

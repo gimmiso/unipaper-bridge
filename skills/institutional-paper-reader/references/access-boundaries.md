@@ -9,6 +9,11 @@ UniPaper Bridge may:
 - Construct a public institutional proxy or library link from an approved adapter.
 - Launch the optional local KHU browser helper with one approved paper URL when
   public full text is unavailable and full text is needed.
+- Save verified bibliographic metadata to the user's local Zotero library after
+  explicit or persisted user authorisation.
+- Ask Zotero to retrieve an attachment only after lawful OA has been verified.
+- Attach one local PDF only when the user lawfully supplied or selected that
+  individual file.
 
 UniPaper Bridge must not:
 
@@ -16,8 +21,14 @@ UniPaper Bridge must not:
 - Request or receive credentials, MFA codes, cookies, browser profiles, or session tokens.
 - Fetch, cache, store, or redistribute paywalled full text.
 - Automate licensed downloads or bypass technical controls.
+- Send a university proxy URL, credential, cookie, or browser session to Zotero.
 
 Authentication and any licensed download happen only in the user's browser under the user's own entitlement. The user may then privately attach an individually obtained PDF when the product and licence permit analysis.
+
+Zotero storage is a separate local trust domain. DOI-first duplicate checks may
+read bibliographic metadata from the local library. PDF paths and indexed full
+text are accessed only for the individual attachment operation the user
+authorised. A Zotero write never changes an evidence-access label by itself.
 
 The local helper returning `browser_opened` is not evidence that the article
 body was read. The helper does not return credentials, cookies, browser session

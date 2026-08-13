@@ -15,10 +15,15 @@ describe("complete local plugin packaging", () => {
     expect(Object.keys(configuration)).toEqual([
       "unipaper-bridge",
       "unipaper-khu-local",
+      "unipaper-zotero-local",
     ]);
     expect(configuration["unipaper-khu-local"]).toEqual({
       command: "node",
       args: ["${PLUGIN_ROOT}/local/khu-auth-mcp/dist/index.js"],
+    });
+    expect(configuration["unipaper-zotero-local"]).toEqual({
+      command: "node",
+      args: ["${PLUGIN_ROOT}/local/zotero-mcp/dist/index.js"],
     });
   });
 
@@ -33,5 +38,14 @@ describe("complete local plugin packaging", () => {
     expect(skill).toMatch(/call it\s+automatically/);
     expect(skill).toMatch(/does\s+not prove that Codex read the paper/);
     expect(metadata).toContain("allow_implicit_invocation: true");
+  });
+
+  it("automatically persists only material research papers to Zotero", async () => {
+    const skill = await repositoryFile("skills/institutional-paper-reader/SKILL.md");
+
+    expect(skill).toContain("`save_research_paper_to_zotero`");
+    expect(skill).toMatch(/materially supports/i);
+    expect(skill).toMatch(/Do not save every search result/i);
+    expect(skill).toMatch(/DOI-first/i);
   });
 });
