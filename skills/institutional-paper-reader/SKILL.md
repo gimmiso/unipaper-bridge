@@ -104,13 +104,14 @@ known. That decision belongs to this workflow.
    the user lawfully downloaded or supplied. The local tool applies
    `fulltext-user` after successful attachment. Never pass a credential, cookie,
    browser profile, proxy URL, or licensed publisher URL as an attachment source.
-8. For a decisive paywalled paper whose PDF has not been supplied, use
-   `attachment_mode: metadata-only`; the local tool applies `needs-fulltext`.
-   The KHU browser
-   may open the paper for the user, but that alone does not attach or expose the
-   file. When the user supplies the PDF, add it through `user-pdf` mode if the
-   record is new; if the record already exists without a PDF, report that Zotero
-   needs a manual attachment rather than creating a duplicate.
+8. For a decisive paywalled paper whose PDF has not been supplied, do not create
+   a metadata-only stub by default. Open the KHU browser and wait for the user to
+   supply the individually downloaded PDF, then use `user-pdf` mode to save the
+   metadata and file together. Use `metadata-only` only when the user explicitly
+   wants a placeholder or the full-text handoff cannot be completed in the
+   current task; the local tool applies `needs-fulltext`. If that placeholder
+   later receives a PDF, require a manual Zotero attachment rather than creating
+   a duplicate.
 9. A successful Zotero save does not prove the full text was read. Keep the
    evidence-access label based on the content actually inspected.
 10. If Zotero is closed or unavailable, continue the research. Mention the

@@ -32,7 +32,7 @@ Use the strongest available tool for each stage. Do not pretend an unavailable c
    in the user's browser. Never request or store university credentials, MFA,
    cookies, or session tokens.
 5. **User-provided PDF/full text** — once the user lawfully obtains an individual paper, analyse Methods, Results, figures/tables, Supplement, Discussion, and Limitations as needed. Abstract-only review is not a substitute.
-6. **Zotero** — use the user's library as the persistent reference source when available. Search it before duplicating work. Add/import verified papers only when the user has explicitly authorised Zotero writes for the current workflow; never redistribute licensed PDFs.
+6. **Zotero** — use the user's library as the persistent reference source when available. Search it before duplicating work. When the user's automatic-save preference is enabled or the current prompt explicitly authorises Zotero writes, save every paper that materially affects the verdict, including closest competitors, reused methods or datasets, and decisive contradictory evidence. Follow `institutional-paper-reader` for DOI-first deduplication and OA/user-PDF attachment rules. Do not save rejected screening candidates or redistribute licensed PDFs.
 
 If Elicit or Scite is unavailable, continue with scholarly web search and primary sources rather than stopping. If institutional access is unavailable, mark the unresolved evidence clearly.
 
