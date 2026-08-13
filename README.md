@@ -1,11 +1,12 @@
 # UniPaper Bridge
 
-논문을 일반 학술검색 흐름으로 조사하고, 합법적인 오픈액세스(OA) 원문을
-먼저 읽은 뒤, 필요한 원문을 끝내 읽을 수 없을 때만 사용자의 로컬 대학
-접속을 자동으로 열고, 사용자가 허용하면 중요한 근거 논문을 로컬 Zotero에
-중복 없이 저장하는 오픈소스 MCP 서버 + ChatGPT/Codex 플러그인입니다.
+논문을 일반 학술검색 흐름으로 조사하고, 핵심 논문의 선행·후속·유사 연구를
+필요할 때 자동 확장한 뒤, 합법적인 오픈액세스(OA) 원문을 먼저 읽습니다.
+필요한 원문을 끝내 읽을 수 없을 때만 사용자의 로컬 대학 접속을 자동으로
+열고, 사용자가 허용하면 중요한 근거 논문을 로컬 Zotero에 중복 없이
+저장하는 오픈소스 MCP 서버 + ChatGPT/Codex 플러그인입니다.
 
-현재 0.1 MVP에는 경희대학교 서울캠퍼스와 국제캠퍼스 어댑터가 들어 있습니다. 다른 대학은 공개된 교외접속 규정을 확인한 뒤 `src/institutions.ts`에 어댑터를 추가할 수 있습니다.
+현재 0.2에는 제한된 인용 네트워크 확장과 경희대학교 서울캠퍼스·국제캠퍼스 어댑터가 들어 있습니다. 다른 대학은 공개된 교외접속 규정을 확인한 뒤 `src/institutions.ts`에 어댑터를 추가할 수 있습니다.
 
 ## 바로 연결하기
 
@@ -17,15 +18,21 @@ https://unipaper-bridge-mcp.kimmiso0821.chatgpt.site/api/mcp
 
 상태 페이지는 [unipaper-bridge-mcp.kimmiso0821.chatgpt.site](https://unipaper-bridge-mcp.kimmiso0821.chatgpt.site), 상태 확인 API는 [`/healthz`](https://unipaper-bridge-mcp.kimmiso0821.chatgpt.site/healthz)입니다.
 
-ChatGPT에서 **Settings → Security and login → Developer mode**를 켠 뒤 Plugins에서 새 연결을 추가하고 위 MCP 주소 전체를 입력하세요. 연결 시 `resolve_paper`, `find_open_access`, `list_institutions`, `build_institution_link` 네 도구가 표시되어야 합니다.
+ChatGPT에서 **Settings → Security and login → Developer mode**를 켠 뒤 Plugins에서 새 연결을 추가하고 위 MCP 주소 전체를 입력하세요. 0.2 배포 후에는 `resolve_paper`, `expand_citation_network`, `find_open_access`, `list_institutions`, `build_institution_link` 다섯 도구가 표시되어야 합니다.
 
-현재 공개 배포에서는 Crossref 조회와 경희대 링크 생성이 활성화되어 있습니다. `find_open_access`는 운영 환경에 `OPENALEX_API_KEY`가 설정되기 전까지 안전한 구성 오류를 반환합니다.
+0.2 코드는 다섯 도구를 모두 제공합니다. OpenAlex 키가 없어도
+`expand_citation_network`와 `find_open_access`가 낮은 무키 사용량 한도에서
+동작하지만, 여러 사람이 쓰는 배포에는 무료 `OPENALEX_API_KEY` 설정을
+강력히 권장합니다. 공개 주소의 실제 도구 목록은 운영자가 0.2를 배포한 뒤
+갱신됩니다.
 
 ## 안전 경계
 
 이 서버가 하는 일:
 
 - Crossref에서 DOI/제목 메타데이터 조회
+- OpenAlex에서 중요한 선행 참고문헌·후속 인용논문·주제 유사논문을 제한된
+  한 단계로 확장하고 DOI/OpenAlex ID 기준으로 중복 제거
 - OpenAlex에서 보고된 OA 위치 조회
 - 공식 대학 프록시 규칙으로 사용자에게 보여 줄 접속 링크 생성
 
@@ -41,7 +48,11 @@ ChatGPT에서 **Settings → Security and login → Developer mode**를 켠 뒤 
 flowchart TD
     A["논문 요청"] --> B["Codex의 일반 학술검색"]
     B --> C["DOI·서지정보 검증"]
-    C --> D["OA 원문 검색"]
+    C --> M{"조사 범위 확장이 필요함?"}
+    M -->|예| N["선행·후속·유사 논문 한 단계 확장"]
+    N --> O["중복 제거 및 핵심 후보 선별"]
+    O --> D["OA 원문 검색"]
+    M -->|아니오| D
     D --> E{"실제 본문을 읽을 수 있음?"}
     E -->|예| H["원래 논문 분석 계속"]
     E -->|아니오·원문 불필요| F["초록·메타데이터 한계 표시"]
@@ -63,6 +74,7 @@ Zotero는 학술검색이나 원문 접근을 대신하는 단계가 아닙니�
 | 도구 | 역할 | 외부 데이터 | 상태 변경 |
 |---|---|---:|---:|
 | `resolve_paper` | DOI 또는 제목으로 Crossref 메타데이터 식별 | Crossref | 없음 |
+| `expand_citation_network` | DOI를 기준으로 선행·후속·유사 논문을 제한적으로 확장하고 중복 제거 | OpenAlex | 없음 |
 | `find_open_access` | DOI의 OA 위치 확인 | OpenAlex | 없음 |
 | `list_institutions` | 지원 대학·캠퍼스와 공식 정책 나열 | 없음 | 없음 |
 | `build_institution_link` | 승인된 어댑터로 접속 링크 생성 | 없음 | 없음 |
@@ -87,7 +99,10 @@ ID·비밀번호·쿠키·세션은 MCP 결과, 모델 응답, 명령행 인자,
 
 사용자가 KHU 스킬이나 도구를 따로 선택하는 구조가 아닙니다. 논문 관련
 요청에서 `institutional-paper-reader`가 일반 검색과 공개 원문을 먼저
-처리하고, 실제 원문이 분석에 필요한데 읽을 수 없을 때만
+처리합니다. 문헌검토·연구공백·독창성 확인처럼 조사 범위가 중요한
+요청에서는 검증된 핵심 논문 1~3편을 기준으로 인용 네트워크를 한 단계만
+자동 확장하고, 일반 검색 결과와 중복을 제거한 뒤 중요한 후보만 원문 확인
+단계로 보냅니다. 실제 원문이 분석에 필요한데 읽을 수 없을 때만
 `open_khu_paper`를 자동 호출합니다. 브라우저가 열렸다는 상태만으로 원문을
 읽었다고 간주하지 않으며, 유료 원문 분석에는 사용자가 그 브라우저에서
 합법적으로 받은 개별 PDF를 현재 대화에 첨부하는 마지막 단계만 남습니다.
@@ -114,12 +129,13 @@ macOS에서 매번 credential 사용 시 Touch ID를 요구하려면 `npm run se
 
 ## 로컬 실행 (macOS 포함)
 
-준비물은 Node.js 20 이상과 무료 OpenAlex API 키입니다.
+준비물은 Node.js 20 이상입니다. 무료 OpenAlex API 키는 선택 사항이지만,
+여러 논문을 계속 조사할 때는 사용량 한도를 높이기 위해 권장합니다.
 
 ```bash
 npm ci
 cp .env.example .env
-# .env에 OPENALEX_API_KEY를 입력
+# 권장: .env에 OPENALEX_API_KEY를 입력
 npm run check
 npm start
 ```
@@ -200,15 +216,17 @@ npm run build
 npm run check
 ```
 
-현재 테스트는 DOI 정규화, Crossref/OpenAlex 응답 변환, URL 안전성, KHU 링크 생성, MCP 도구 스키마와 안전 주석을 검증합니다.
+현재 테스트는 DOI 정규화, Crossref/OpenAlex 응답 변환, 인용 네트워크의
+순위·제한·중복 제거·입장 미판정 규칙, URL 안전성, KHU 링크 생성, MCP 도구
+스키마와 안전 주석을 검증합니다.
 
 크로스플랫폼 로컬 헬퍼까지 검증하려면 `npm run check:local`을 추가로 실행합니다. 실제 비밀번호 없이 출력 차단, 허용 URL, 세션 우선 접근, 로컬 MCP 도구 계약을 검사합니다.
 
-현재 공개 배포에 사용된 buildless Worker 구현은 [`deploy/sites-worker.js`](deploy/sites-worker.js)에 함께 공개되어 있습니다. Node/Express 서버와 동일한 네 도구 및 브라우저 인증 경계를 유지하며 공개 엔드포인트는 `/api/mcp`입니다.
+공개 배포용 buildless Worker 구현은 [`deploy/sites-worker.js`](deploy/sites-worker.js)에 함께 공개되어 있습니다. Node/Express 서버와 동일한 다섯 도구 및 브라우저 인증 경계를 유지하며 공개 엔드포인트는 `/api/mcp`입니다.
 
 ## English summary
 
-UniPaper Bridge is a privacy-preserving MCP server and plugin that resolves scholarly metadata, checks reported open-access locations, and creates institution-specific links. University authentication remains entirely in each user's browser; the server never handles credentials, browser sessions, or licensed PDFs.
+UniPaper Bridge is a privacy-preserving MCP server and plugin that resolves scholarly metadata, performs bounded and deduplicated citation-network expansion, checks reported open-access locations, and creates institution-specific links. University authentication remains entirely in each user's browser; the server never handles credentials, browser sessions, or licensed PDFs.
 
 ## Licence
 

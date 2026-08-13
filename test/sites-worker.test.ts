@@ -1,9 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 // The deployed Worker is plain ESM so the exact production source can be tested.
 // @ts-expect-error The deployment file intentionally has no TypeScript declarations.
 import worker from "../deploy/sites-worker.js";
 
-async function call(body: Record<string, unknown>) {
+async function call(body: Record<string, unknown>, env: Record<string, string> = {}) {
   const response = await worker.fetch(
     new Request("https://example.test/api/mcp", {
       method: "POST",
@@ -13,14 +13,16 @@ async function call(body: Record<string, unknown>) {
       },
       body: JSON.stringify(body),
     }),
-    {},
+    env,
     {},
   );
   return { response, body: await response.json() };
 }
 
 describe("deployed Sites Worker", () => {
-  it("initializes and advertises the four public tools", async () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("initializes and advertises the five public tools", async () => {
     const initialized = await call({
       jsonrpc: "2.0",
       id: 1,
@@ -38,6 +40,7 @@ describe("deployed Sites Worker", () => {
     });
     expect(listed.body.result.tools.map((tool: { name: string }) => tool.name)).toEqual([
       "resolve_paper",
+      "expand_citation_network",
       "find_open_access",
       "list_institutions",
       "build_institution_link",
@@ -75,5 +78,62 @@ describe("deployed Sites Worker", () => {
       },
     });
     expect(blocked.body.result.isError).toBe(true);
+  });
+
+  it("expands citation networks without exposing the operator key", async () => {
+    const work = (id: string, title: string, doi: string, citedBy = 1) => ({
+      id: `https://openalex.org/${id}`,
+      doi: `https://doi.org/${doi}`,
+      title,
+      publication_year: 2024,
+      type: "article",
+      cited_by_count: citedBy,
+      is_retracted: false,
+      authorships: [{ author: { display_name: "Example Author" } }],
+      primary_location: { source: { display_name: "Example Journal" } },
+      open_access: { is_oa: false },
+    });
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      const url = new URL(String(input));
+      if (url.pathname.includes("/works/doi%3A")) {
+        return new Response(
+          JSON.stringify({
+            ...work("W100", "Seed", "10.1000/seed", 10),
+            referenced_works: ["https://openalex.org/W200"],
+            referenced_works_count: 1,
+            related_works: ["https://openalex.org/W300"],
+          }),
+        );
+      }
+      const filter = url.searchParams.get("filter");
+      const body =
+        filter === "openalex_id:W200"
+          ? { meta: { count: 1 }, results: [work("W200", "Earlier", "10.1000/earlier", 30)] }
+          : filter === "cites:W100"
+            ? { meta: { count: 1 }, results: [work("W400", "Later", "10.1000/later", 5)] }
+            : { meta: { count: 1 }, results: [work("W300", "Similar", "10.1000/similar", 3)] };
+      return new Response(JSON.stringify(body));
+    });
+
+    const expanded = await call(
+      {
+        jsonrpc: "2.0",
+        id: 5,
+        method: "tools/call",
+        params: {
+          name: "expand_citation_network",
+          arguments: { doi: "10.1000/seed", per_relation: 2 },
+        },
+      },
+      { OPENALEX_API_KEY: "worker-network-secret" },
+    );
+
+    expect(expanded.body.result.structuredContent).toMatchObject({
+      citation_stance: "not_determined",
+      earlier_works: [{ openalex_id: "W200" }],
+      later_works: [{ openalex_id: "W400" }],
+      similar_works: [{ openalex_id: "W300" }],
+    });
+    expect(JSON.stringify(expanded.body)).not.toContain("worker-network-secret");
   });
 });

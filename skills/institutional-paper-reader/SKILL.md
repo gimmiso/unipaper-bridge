@@ -21,24 +21,56 @@ For every paper whose contents materially affect the answer, follow this order:
    scholarly-search process.
 2. Resolve its DOI and canonical public landing page with `resolve_paper` when
    available.
-3. Try lawful public full text first, including repository copies and
+3. When the request depends on literature coverage rather than one isolated
+   paper, expand verified seeds with `expand_citation_network` and screen the
+   bounded earlier, later, and similar candidates as described below.
+4. Try lawful public full text first, including repository copies and
    `find_open_access` results.
-4. Verify that the article body or PDF is actually readable. Metadata, snippets,
+5. Verify that the article body or PDF is actually readable. Metadata, snippets,
    and an abstract do not count as full text.
-5. If full text is unnecessary for the user's question, answer with a clear
+6. If full text is unnecessary for the user's question, answer with a clear
    `abstract/metadata only` limitation and do not open institutional access.
-6. If full text is necessary but remains unreadable, invoke the local
+7. If full text is necessary but remains unreadable, invoke the local
    institutional fallback automatically as described below.
-7. Resume and complete the original paper analysis using only the evidence
+8. Resume and complete the original paper analysis using only the evidence
    actually available, with the appropriate access limitation attached.
-8. After the analysis, identify the important full texts that materially
+9. After the analysis, identify the important full texts that materially
    supported it.
-9. Only then enter the Zotero persistence step. Persist those material papers
+10. Only then enter the Zotero persistence step. Persist those material papers
    when the user's automatic-save preference is enabled or the current prompt
    explicitly authorises the Zotero write.
 
 Do not stop after returning a DOI, OA candidate, or proxy link when the user's
 actual request requires reading and analysing the paper.
+
+## Expand the citation network without flooding the search
+
+1. Run `expand_citation_network` automatically for literature reviews, field
+   mapping, novelty or research-gap checks, prior-art searches, and questions
+   whose answer could change if a key predecessor or follow-up paper is missed.
+   Do not run it for a simple summary of one explicitly identified paper unless
+   the user also asks about its place in the literature.
+2. Start with one to three verified seed papers and use `per_relation: 5` by
+   default. Treat this as a one-hop expansion. Do not recursively expand every
+   returned candidate.
+3. Screen all three groups: influential works cited by the seed, later works
+   that cite the seed, and topic-similar works. Prefer DOI matches, direct
+   methodological precedents, later corrections or extensions, and papers whose
+   title or abstract addresses the user's actual question.
+4. Deduplicate by DOI first and OpenAlex ID second. The tool already removes
+   cross-group duplicates; also reconcile candidates found by ordinary search.
+5. Never treat citation count as quality or relevance. Use it only to order a
+   bounded candidate pool. Flag retracted candidates and do not rely on them as
+   positive evidence.
+6. Never infer that a citing paper supports, disputes, or replicates the seed
+   from the citation edge alone. Keep stance `not determined` until the citation
+   context or relevant full text has been inspected.
+7. Expand a second hop only when the first hop reveals a specific missing
+   lineage, unresolved contradiction, or decisive method/data predecessor.
+   Expand only that candidate, not the entire result set.
+8. Send only candidates that may materially affect the answer into the OA and
+   institutional full-text ladder. Network discovery alone never triggers
+   Zotero storage.
 
 ## Resolve the exact work
 

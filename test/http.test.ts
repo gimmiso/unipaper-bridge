@@ -32,6 +32,6 @@ describe("Streamable HTTP endpoint", () => {
     client = new Client({ name: "http-test", version: "1.0.0" });
     await client.connect(new StreamableHTTPClientTransport(new URL(`${base}/mcp`)));
     const tools = await client.listTools();
-    expect(tools.tools).toHaveLength(4);
+    expect(tools.tools).toHaveLength(5);
   });
 });

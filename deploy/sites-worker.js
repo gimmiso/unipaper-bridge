@@ -1,5 +1,5 @@
 const SERVER_NAME = "unipaper-bridge";
-const SERVER_VERSION = "0.1.0";
+const SERVER_VERSION = "0.2.0";
 const MCP_PATH = "/api/mcp";
 const LATEST_PROTOCOL_VERSION = "2025-06-18";
 const SUPPORTED_PROTOCOL_VERSIONS = new Set([
@@ -10,7 +10,7 @@ const SUPPORTED_PROTOCOL_VERSIONS = new Set([
 const MAX_BODY_BYTES = 1_000_000;
 
 const SERVER_INSTRUCTIONS =
-  "Resolve the exact paper first, then check lawful open access. If no OA copy exists, build an institution link only for an adapter the user selects. The user must authenticate in their own browser. Never request credentials, cookies, MFA codes, proxy sessions, or bulk downloads. Never claim full-text access until the user supplies or opens the full article.";
+  "Resolve the exact paper first. Expand the citation network when broader literature coverage matters, but never infer support or contradiction from a citation link alone. Then check lawful open access. If no OA copy exists, build an institution link only for an adapter the user selects. The user must authenticate in their own browser. Never request credentials, cookies, MFA codes, proxy sessions, or bulk downloads. Never claim full-text access until the user supplies or opens the full article.";
 
 const INSTITUTIONS = [
   {
@@ -61,6 +61,43 @@ const paperMatchSchema = {
     publisher: { type: ["string", "null"] },
     type: { type: ["string", "null"] },
     canonical_url: { type: ["string", "null"] },
+  },
+};
+
+const citationNetworkPaperSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: [
+    "relation",
+    "openalex_id",
+    "doi",
+    "title",
+    "authors",
+    "year",
+    "venue",
+    "type",
+    "cited_by_count",
+    "is_open_access",
+    "is_retracted",
+    "canonical_url",
+    "oa_url",
+    "relationship_note",
+  ],
+  properties: {
+    relation: { enum: ["seed", "referenced", "citing", "related"] },
+    openalex_id: { type: "string" },
+    doi: { type: ["string", "null"] },
+    title: { type: "string" },
+    authors: { type: "array", items: { type: "string" } },
+    year: { type: ["integer", "null"] },
+    venue: { type: ["string", "null"] },
+    type: { type: ["string", "null"] },
+    cited_by_count: { type: "integer" },
+    is_open_access: { type: ["boolean", "null"] },
+    is_retracted: { type: ["boolean", "null"] },
+    canonical_url: { type: "string" },
+    oa_url: { type: ["string", "null"] },
+    relationship_note: { type: "string" },
   },
 };
 
@@ -130,6 +167,80 @@ const TOOLS = [
         normalized_query: { type: "string" },
         provider: { const: "crossref" },
         matches: { type: "array", items: paperMatchSchema },
+      },
+    },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      openWorldHint: true,
+    },
+  },
+  {
+    name: "expand_citation_network",
+    title: "Expand a paper's citation network",
+    description:
+      "Use this after resolving a DOI to find bounded sets of influential references, later papers that cite the seed, and topic-similar works. Results are deduplicated. A citation link never proves support or contradiction; inspect citation context or full text before classifying stance.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["doi"],
+      properties: {
+        doi: {
+          type: "string",
+          minLength: 1,
+          maxLength: 512,
+          description: "The resolved DOI or DOI URL.",
+        },
+        per_relation: {
+          type: "integer",
+          minimum: 1,
+          maximum: 10,
+          default: 5,
+          description: "Maximum results for each of earlier, later, and similar works.",
+        },
+      },
+    },
+    outputSchema: {
+      type: "object",
+      additionalProperties: false,
+      required: [
+        "provider",
+        "configured",
+        "seed",
+        "requested_per_relation",
+        "counts",
+        "earlier_works",
+        "later_works",
+        "similar_works",
+        "citation_stance",
+        "notes",
+      ],
+      properties: {
+        provider: { const: "openalex" },
+        configured: { const: true },
+        seed: citationNetworkPaperSchema,
+        requested_per_relation: { type: "integer" },
+        counts: {
+          type: "object",
+          additionalProperties: false,
+          required: [
+            "references_reported",
+            "references_scanned",
+            "citing_works_reported",
+            "related_works_reported",
+          ],
+          properties: {
+            references_reported: { type: "integer" },
+            references_scanned: { type: "integer" },
+            citing_works_reported: { type: "integer" },
+            related_works_reported: { type: "integer" },
+          },
+        },
+        earlier_works: { type: "array", items: citationNetworkPaperSchema },
+        later_works: { type: "array", items: citationNetworkPaperSchema },
+        similar_works: { type: "array", items: citationNetworkPaperSchema },
+        citation_stance: { const: "not_determined" },
+        notes: { type: "array", items: { type: "string" } },
       },
     },
     annotations: {
@@ -410,6 +521,95 @@ function mapCrossrefWork(work) {
   };
 }
 
+const OPENALEX_NETWORK_FIELDS = [
+  "id",
+  "doi",
+  "title",
+  "publication_year",
+  "type",
+  "cited_by_count",
+  "is_retracted",
+  "authorships",
+  "primary_location",
+  "best_oa_location",
+  "open_access",
+].join(",");
+const OPENALEX_REFERENCE_SCAN_LIMIT = 100;
+
+function openAlexApiKey(env) {
+  const apiKey =
+    typeof env?.OPENALEX_API_KEY === "string" ? env.OPENALEX_API_KEY.trim() : "";
+  return apiKey || null;
+}
+
+function openAlexShortId(value) {
+  const cleaned = cleanText(value);
+  const match = cleaned?.match(/(?:^|\/)(W\d+)$/i);
+  return match?.[1]?.toUpperCase() ?? null;
+}
+
+function openAlexDoi(value) {
+  const cleaned = cleanText(value);
+  if (!cleaned) return null;
+  try {
+    return normalizeDoi(cleaned);
+  } catch {
+    return null;
+  }
+}
+
+function mapOpenAlexNetworkPaper(work, relation) {
+  const openAlexId = openAlexShortId(work?.id);
+  if (!openAlexId) return null;
+  const doi = openAlexDoi(work?.doi);
+  const authors = (Array.isArray(work?.authorships) ? work.authorships : [])
+    .map((authorship) => cleanText(authorship?.author?.display_name))
+    .filter(Boolean);
+  const relationshipNote =
+    relation === "seed"
+      ? "Seed paper used to expand the citation network."
+      : relation === "referenced"
+        ? "The seed paper cites this work."
+        : relation === "citing"
+          ? "This work cites the seed paper; inspect the citation context or full text before classifying it as supporting or contrasting."
+          : "OpenAlex reports this as an algorithmically related work based on shared topics.";
+  return {
+    relation,
+    openalex_id: openAlexId,
+    doi,
+    title: cleanText(work?.title) ?? "Untitled work",
+    authors,
+    year: Number.isInteger(work?.publication_year) ? work.publication_year : null,
+    venue: cleanText(work?.primary_location?.source?.display_name),
+    type: cleanText(work?.type),
+    cited_by_count: Number.isInteger(work?.cited_by_count)
+      ? Math.max(0, work.cited_by_count)
+      : 0,
+    is_open_access:
+      typeof work?.open_access?.is_oa === "boolean" ? work.open_access.is_oa : null,
+    is_retracted:
+      typeof work?.is_retracted === "boolean" ? work.is_retracted : null,
+    canonical_url:
+      (doi ? `https://doi.org/${doi}` : null) ??
+      cleanText(work?.primary_location?.landing_page_url) ??
+      `https://openalex.org/${openAlexId}`,
+    oa_url: work?.open_access?.is_oa
+      ? cleanText(work?.best_oa_location?.landing_page_url) ??
+        cleanText(work?.open_access?.oa_url)
+      : null,
+    relationship_note: relationshipNote,
+  };
+}
+
+function rankByCitationCount(works) {
+  return [...works].sort(
+    (left, right) =>
+      right.cited_by_count - left.cited_by_count ||
+      (right.year ?? -1) - (left.year ?? -1) ||
+      left.title.localeCompare(right.title),
+  );
+}
+
 async function fetchJson(service, url) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 10_000);
@@ -442,6 +642,22 @@ async function fetchJson(service, url) {
   } catch {
     throw new PublicError(`${service} returned an invalid JSON response.`);
   }
+}
+
+async function fetchOpenAlexWorksByIds(ids, relation, apiKey) {
+  const uniqueIds = [
+    ...new Set(ids.map((id) => openAlexShortId(id)).filter(Boolean)),
+  ];
+  if (uniqueIds.length === 0) return [];
+  const url = new URL("https://api.openalex.org/works");
+  if (apiKey) url.searchParams.set("api_key", apiKey);
+  url.searchParams.set("filter", `openalex_id:${uniqueIds.slice(0, 100).join("|")}`);
+  url.searchParams.set("per_page", String(Math.min(uniqueIds.length, 100)));
+  url.searchParams.set("select", OPENALEX_NETWORK_FIELDS);
+  const payload = await fetchJson("OpenAlex", url);
+  return (Array.isArray(payload?.results) ? payload.results : [])
+    .map((work) => mapOpenAlexNetworkPaper(work, relation))
+    .filter(Boolean);
 }
 
 async function resolvePaper(args, env) {
@@ -489,6 +705,124 @@ async function resolvePaper(args, env) {
   );
 }
 
+async function expandCitationNetwork(args, env) {
+  const input = requireObject(args);
+  const doi = normalizeDoi(input.doi);
+  const perRelation = input.per_relation ?? 5;
+  if (!Number.isInteger(perRelation) || perRelation < 1 || perRelation > 10) {
+    throw new PublicError("per_relation must be an integer between 1 and 10.");
+  }
+  const apiKey = openAlexApiKey(env);
+  const identifier = encodeURIComponent(`doi:${doi}`);
+  const seedUrl = new URL(`https://api.openalex.org/works/${identifier}`);
+  if (apiKey) seedUrl.searchParams.set("api_key", apiKey);
+  seedUrl.searchParams.set(
+    "select",
+    `${OPENALEX_NETWORK_FIELDS},referenced_works,referenced_works_count,related_works`,
+  );
+  const seedWork = await fetchJson("OpenAlex", seedUrl);
+  const seed = mapOpenAlexNetworkPaper(seedWork, "seed");
+  if (!seed) {
+    throw new PublicError("OpenAlex returned a work without a valid work ID.");
+  }
+
+  const referencedIds = (Array.isArray(seedWork?.referenced_works)
+    ? seedWork.referenced_works
+    : []
+  ).slice(0, OPENALEX_REFERENCE_SCAN_LIMIT);
+  const relatedIds = (Array.isArray(seedWork?.related_works)
+    ? seedWork.related_works
+    : []
+  ).slice(0, 10);
+  const earlierPool = await fetchOpenAlexWorksByIds(
+    referencedIds,
+    "referenced",
+    apiKey,
+  );
+
+  const laterUrl = new URL("https://api.openalex.org/works");
+  if (apiKey) laterUrl.searchParams.set("api_key", apiKey);
+  laterUrl.searchParams.set("filter", `cites:${seed.openalex_id}`);
+  laterUrl.searchParams.set("sort", "cited_by_count:desc");
+  laterUrl.searchParams.set("per_page", String(perRelation));
+  laterUrl.searchParams.set("select", OPENALEX_NETWORK_FIELDS);
+  const laterPayload = await fetchJson("OpenAlex", laterUrl);
+  const laterPool = (Array.isArray(laterPayload?.results)
+    ? laterPayload.results
+    : []
+  )
+    .map((work) => mapOpenAlexNetworkPaper(work, "citing"))
+    .filter(Boolean);
+
+  const similarPool = await fetchOpenAlexWorksByIds(
+    relatedIds,
+    "related",
+    apiKey,
+  );
+  const similarById = new Map(similarPool.map((work) => [work.openalex_id, work]));
+  const orderedSimilar = relatedIds
+    .map((id) => openAlexShortId(id))
+    .map((id) => (id ? similarById.get(id) : undefined))
+    .filter(Boolean);
+  const seen = new Set([
+    `openalex:${seed.openalex_id}`,
+    ...(seed.doi ? [`doi:${seed.doi}`] : []),
+  ]);
+  const deduplicate = (works) =>
+    works.filter((work) => {
+      const key = work.doi ? `doi:${work.doi}` : `openalex:${work.openalex_id}`;
+      const alternateKey = `openalex:${work.openalex_id}`;
+      if (seen.has(key) || seen.has(alternateKey)) return false;
+      seen.add(key);
+      seen.add(alternateKey);
+      return true;
+    });
+
+  const referencesReported = Number.isInteger(seedWork?.referenced_works_count)
+    ? Math.max(0, seedWork.referenced_works_count)
+    : referencedIds.length;
+  const result = {
+    provider: "openalex",
+    configured: true,
+    seed,
+    requested_per_relation: perRelation,
+    counts: {
+      references_reported: referencesReported,
+      references_scanned: referencedIds.length,
+      citing_works_reported: Number.isInteger(laterPayload?.meta?.count)
+        ? Math.max(0, laterPayload.meta.count)
+        : laterPool.length,
+      related_works_reported: Array.isArray(seedWork?.related_works)
+        ? seedWork.related_works.length
+        : 0,
+    },
+    earlier_works: deduplicate(rankByCitationCount(earlierPool)).slice(
+      0,
+      perRelation,
+    ),
+    later_works: deduplicate(laterPool).slice(0, perRelation),
+    similar_works: deduplicate(orderedSimilar).slice(0, perRelation),
+    citation_stance: "not_determined",
+    notes: [
+      "Earlier works are direct references ranked by citation count within the scanned reference pool.",
+      "Later works directly cite the seed and are ranked by citation count.",
+      "Similar works come from OpenAlex topic similarity and are not necessarily direct citations.",
+      "Citation links do not reveal whether a later paper supports, disputes, or merely mentions the seed; inspect citation context or full text before making that claim.",
+      referencesReported > referencedIds.length
+        ? `The seed reports ${referencesReported} references; this bounded request scanned the first ${referencedIds.length}.`
+        : `Scanned all ${referencedIds.length} OpenAlex-matched references reported for the seed.`,
+    ],
+  };
+  const returned =
+    result.earlier_works.length +
+    result.later_works.length +
+    result.similar_works.length;
+  return toolSuccess(
+    result,
+    `OpenAlex returned ${returned} deduplicated citation-network candidates. Citation stance remains undetermined until context or full text is inspected.`,
+  );
+}
+
 function emptyOpenAlexResult(doi, note) {
   return {
     doi,
@@ -512,17 +846,11 @@ function emptyOpenAlexResult(doi, note) {
 async function findOpenAccess(args, env) {
   const input = requireObject(args);
   const doi = normalizeDoi(input.doi);
-  const apiKey =
-    typeof env?.OPENALEX_API_KEY === "string" ? env.OPENALEX_API_KEY.trim() : "";
-  if (!apiKey) {
-    throw new PublicError(
-      "Open-access lookup is not configured on this deployment. The operator must set OPENALEX_API_KEY.",
-    );
-  }
+  const apiKey = openAlexApiKey(env);
 
   const identifier = encodeURIComponent(`doi:${doi}`);
   const url = new URL(`https://api.openalex.org/works/${identifier}`);
-  url.searchParams.set("api_key", apiKey);
+  if (apiKey) url.searchParams.set("api_key", apiKey);
   url.searchParams.set(
     "select",
     "id,doi,title,publication_year,is_retracted,primary_location,best_oa_location,open_access",
@@ -690,6 +1018,8 @@ async function callTool(name, args, env) {
     switch (name) {
       case "resolve_paper":
         return await resolvePaper(args, env);
+      case "expand_citation_network":
+        return await expandCitationNetwork(args, env);
       case "find_open_access":
         return await findOpenAccess(args, env);
       case "list_institutions":
@@ -848,10 +1178,11 @@ const page = `<!doctype html>
     <main>
       <div class="status"><span class="dot"></span>Service online</div>
       <h1>UniPaper<br>Bridge</h1>
-      <p>A privacy-preserving MCP bridge from scholarly metadata to user-controlled institutional library access.</p>
+      <p>A privacy-preserving MCP bridge for scholarly metadata, bounded citation-network discovery, and user-controlled institutional library access.</p>
       <ul>
         <li>Public MCP endpoint: <code>/api/mcp</code></li>
         <li>Health check: <code>/healthz</code></li>
+        <li>One-hop earlier, later, and similar-paper expansion</li>
         <li>University authentication stays in the user's browser</li>
         <li>No passwords, MFA codes, cookies, sessions, or PDFs are stored</li>
       </ul>
@@ -864,7 +1195,7 @@ const page = `<!doctype html>
   </body>
 </html>`;
 
-const privacyPage = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Privacy — UniPaper Bridge</title></head><body style="font:16px/1.65 system-ui;max-width:760px;margin:48px auto;padding:0 24px;color:#183a31"><h1>Privacy</h1><p>UniPaper Bridge processes paper identifiers, titles, and public publisher URLs only to return scholarly metadata and user-openable links. It does not request or store university passwords, MFA codes, browser cookies, proxy sessions, or article PDFs.</p><p>University authentication occurs directly between the user and their institution in the user's browser. Requests may be sent to Crossref and, when configured, OpenAlex under those providers' policies. Operational logs are limited to service errors and do not intentionally record credentials or API keys.</p><p><a href="/">Back</a></p></body></html>`;
+const privacyPage = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Privacy — UniPaper Bridge</title></head><body style="font:16px/1.65 system-ui;max-width:760px;margin:48px auto;padding:0 24px;color:#183a31"><h1>Privacy</h1><p>UniPaper Bridge processes paper identifiers, titles, and public publisher URLs only to return scholarly metadata, bounded citation-network candidates, and user-openable links. It does not request or store university passwords, MFA codes, browser cookies, proxy sessions, or article PDFs.</p><p>University authentication occurs directly between the user and their institution in the user's browser. Requests may be sent to Crossref and, when configured, OpenAlex under those providers' policies. Operational logs are limited to service errors and do not intentionally record credentials or API keys.</p><p><a href="/">Back</a></p></body></html>`;
 
 const termsPage = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Terms — UniPaper Bridge</title></head><body style="font:16px/1.65 system-ui;max-width:760px;margin:48px auto;padding:0 24px;color:#183a31"><h1>Terms</h1><p>Use UniPaper Bridge only for lawful personal research and in accordance with the policies and licence terms of your institution and each publisher. The service constructs links but does not grant access rights, bypass authentication, or redistribute licensed content.</p><p>Do not automate bulk downloads or share institution-authenticated links, sessions, or downloaded files with unauthorised users. Metadata and availability information may be incomplete or change over time; verify the article, licence, and version at the source.</p><p><a href="/">Back</a></p></body></html>`;
 

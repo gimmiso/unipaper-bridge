@@ -1,7 +1,7 @@
 interface:
   display_name: "Institutional Paper Reader"
-  short_description: "Research, unlock, and preserve key papers"
-  default_prompt: "Use $institutional-paper-reader to research this topic, use my configured university access only when required, and save material papers to Zotero when authorised."
+  short_description: "Map, access, analyse, and preserve key papers"
+  default_prompt: "Use $institutional-paper-reader to research this topic, expand important citation networks when coverage matters, use my configured university access only when required, and save material papers to Zotero when authorised."
 
 policy:
   allow_implicit_invocation: true

@@ -1,7 +1,7 @@
 {
   "name": "unipaper-bridge",
-  "version": "0.1.0",
-  "description": "A privacy-preserving MCP bridge from scholarly metadata to user-controlled institutional library access.",
+  "version": "0.2.0",
+  "description": "A privacy-preserving MCP bridge for scholarly metadata, bounded citation-network discovery, and user-controlled institutional library access.",
   "type": "module",
   "bin": {
     "unipaper-bridge": "dist/index.js"

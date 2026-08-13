@@ -22,11 +22,12 @@ describe("MCP contract", () => {
     return client;
   }
 
-  it("advertises four focused read-only tools with annotations", async () => {
+  it("advertises five focused read-only tools with annotations", async () => {
     const client = await connectedClient();
     const result = await client.listTools();
     expect(result.tools.map((tool) => tool.name)).toEqual([
       "resolve_paper",
+      "expand_citation_network",
       "find_open_access",
       "list_institutions",
       "build_institution_link",
@@ -35,6 +36,9 @@ describe("MCP contract", () => {
     expect(result.tools.every((tool) => tool.annotations?.destructiveHint === false)).toBe(
       true,
     );
+    expect(
+      result.tools.find((tool) => tool.name === "expand_citation_network")?.description,
+    ).toMatch(/never proves support or contradiction/i);
   });
 
   it("returns model-readable and structured institutional link results", async () => {

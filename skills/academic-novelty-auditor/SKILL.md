@@ -1,6 +1,6 @@
 ---
 name: academic-novelty-auditor
-description: Audit whether a research idea, thesis question, method, or claimed contribution is genuinely novel using adversarial literature discovery, citation-context checking, lawful full-text access, and evidence-matrix comparison. Use when the user asks whether a study has already been done, wants a research gap or novelty claim tested, needs thesis positioning, literature review coverage, closest-paper comparison, or a reviewer-style novelty challenge. Prefer Elicit for broad structured discovery, Scite for citation-context and contradiction checks, UniPaper Bridge/institutional-paper-reader for lawful full-text access including KHU, and Zotero for the user's verified reference library when those tools are available. Never declare novelty from abstracts alone when the closest competing papers can be checked in full text.
+description: Audit whether a research idea, thesis question, method, or claimed contribution is genuinely novel using adversarial literature discovery, bounded citation-network expansion, citation-context checking, lawful full-text access, and evidence-matrix comparison. Use when the user asks whether a study has already been done, wants a research gap or novelty claim tested, needs thesis positioning, literature review coverage, closest-paper comparison, or a reviewer-style novelty challenge. Prefer Elicit for broad structured discovery, UniPaper Bridge for one-hop earlier/later/similar-work expansion and lawful full-text access including KHU, Scite for citation-context and contradiction checks, and Zotero for the user's verified reference library when those tools are available. Never declare novelty from abstracts alone when the closest competing papers can be checked in full text.
 ---
 
 # Academic Novelty Auditor
@@ -23,16 +23,20 @@ Run an adversarial, evidence-first novelty audit. The goal is not to prove that 
 Use the strongest available tool for each stage. Do not pretend an unavailable connector was used.
 
 1. **Elicit or equivalent structured scholarly search** — broad candidate discovery, screening, paper-level field extraction, evidence tables.
-2. **Scite or equivalent citation-context database** — supporting/contrasting citation context, downstream challenges, retractions/editorial concerns, and citation chasing.
-3. **Primary scholarly sources and publisher/index pages** — DOI verification, publication status, venue, final version, recent papers and preprints.
-4. **UniPaper Bridge / `institutional-paper-reader`** — lawful full-text access.
+2. **UniPaper Bridge / `expand_citation_network`** — bounded one-hop
+   expansion from verified seeds into influential references, later citing
+   works, and topic-similar candidates. Deduplicate the groups, and never infer
+   citation stance from an edge alone.
+3. **Scite or equivalent citation-context database** — supporting/contrasting citation context, downstream challenges, retractions/editorial concerns, and citation chasing.
+4. **Primary scholarly sources and publisher/index pages** — DOI verification, publication status, venue, final version, recent papers and preprints.
+5. **UniPaper Bridge / `institutional-paper-reader`** — lawful full-text access.
    Prefer OA first. When a decisive paper remains unreadable, let the reader
    automatically invoke `open_khu_paper` as the last-mile KHU fallback instead
    of asking the user to choose or name the tool. Keep authentication entirely
    in the user's browser. Never request or store university credentials, MFA,
    cookies, or session tokens.
-5. **User-provided PDF/full text** — once the user lawfully obtains an individual paper, analyse Methods, Results, figures/tables, Supplement, Discussion, and Limitations as needed. Abstract-only review is not a substitute.
-6. **Zotero** — use the user's library as the persistent reference source when available. Search it before duplicating work. When the user's automatic-save preference is enabled or the current prompt explicitly authorises Zotero writes, save every paper that materially affects the verdict, including closest competitors, reused methods or datasets, and decisive contradictory evidence. Follow `institutional-paper-reader` for DOI-first deduplication and OA/user-PDF attachment rules. Do not save rejected screening candidates or redistribute licensed PDFs.
+6. **User-provided PDF/full text** — once the user lawfully obtains an individual paper, analyse Methods, Results, figures/tables, Supplement, Discussion, and Limitations as needed. Abstract-only review is not a substitute.
+7. **Zotero** — use the user's library as the persistent reference source when available. Search it before duplicating work. When the user's automatic-save preference is enabled or the current prompt explicitly authorises Zotero writes, save every paper that materially affects the verdict, including closest competitors, reused methods or datasets, and decisive contradictory evidence. Follow `institutional-paper-reader` for DOI-first deduplication and OA/user-PDF attachment rules. Do not save rejected screening candidates or redistribute licensed PDFs.
 
 If Elicit or Scite is unavailable, continue with scholarly web search and primary sources rather than stopping. If institutional access is unavailable, mark the unresolved evidence clearly.
 
@@ -106,12 +110,18 @@ Prioritise direct competitors and methodological precedents for full-text retrie
 
 For the strongest candidates:
 
+- call `expand_citation_network` on one to three verified seeds with
+  `per_relation: 5` before manual backward/forward chasing
 - inspect references for earlier versions of the idea
 - inspect citing papers for extensions, replications, contradictions, and criticism
 - check whether a newer paper already closes the claimed gap
 - verify preprint vs peer-reviewed/version-of-record status
 
-Use Scite when available, but verify critical claims against the underlying papers.
+Treat the first expansion as one hop. Do not expand every returned candidate.
+Run a second hop only for a specific missing lineage or unresolved novelty
+threat. A citation edge is discovery evidence, not proof of support or
+contradiction. Use Scite when available, but verify critical claims against the
+underlying papers.
 
 ### 6. Full-text gate
 

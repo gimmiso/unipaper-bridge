@@ -7,6 +7,9 @@
 - Institution links are generated from a reviewed adapter allowlist.
 - Target URLs must be public HTTP(S) hostnames and cannot contain user information, literal IPs, local-only suffixes, or an existing KHU proxy host.
 - Upstream API keys are never returned in structured or text tool results.
+- Citation expansion is bounded to at most ten returned papers per relation and
+  at most one hundred scanned references per seed request; it never fetches
+  paper content or follows the graph recursively on its own.
 - Hosted MCP tools are read-only and non-destructive.
 
 ## Optional local components
@@ -53,7 +56,8 @@ return PDF bytes, local paths, or private library contents to the model.
 ## Operator responsibilities
 
 - Keep dependencies updated and run `npm audit` plus the full test suite before deployment.
-- Store `OPENALEX_API_KEY` in the hosting platform's secret store.
+- When configured, store `OPENALEX_API_KEY` in the hosting platform's secret
+  store. Never ask end users to supply it through a tool call.
 - Set `ALLOWED_HOSTS`, TLS, and the correct `TRUST_PROXY` hop count.
 - Avoid logging full upstream URLs because they may contain the OpenAlex API key.
 - Monitor rate limits and abuse without retaining scholarly queries longer than needed.

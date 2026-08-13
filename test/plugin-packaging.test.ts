@@ -40,6 +40,18 @@ describe("complete local plugin packaging", () => {
     expect(metadata).toContain("allow_implicit_invocation: true");
   });
 
+  it("expands citation networks automatically but keeps the search bounded", async () => {
+    const reader = await repositoryFile("skills/institutional-paper-reader/SKILL.md");
+    const novelty = await repositoryFile("skills/academic-novelty-auditor/SKILL.md");
+
+    expect(reader).toContain("`expand_citation_network`");
+    expect(reader).toMatch(/one-hop expansion/i);
+    expect(reader).toContain("`per_relation: 5`");
+    expect(reader).toMatch(/Never infer.*supports, disputes, or replicates/is);
+    expect(novelty).toContain("`expand_citation_network`");
+    expect(novelty).toMatch(/not proof of support or\s+contradiction/i);
+  });
+
   it("automatically persists only material research papers to Zotero", async () => {
     const skill = await repositoryFile("skills/institutional-paper-reader/SKILL.md");
 
