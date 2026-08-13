@@ -29,9 +29,13 @@ For every paper whose contents materially affect the answer, follow this order:
    `abstract/metadata only` limitation and do not open institutional access.
 6. If full text is necessary but remains unreadable, invoke the local
    institutional fallback automatically as described below.
-7. Before completing the research answer, persist every material paper to
-   Zotero when the user's automatic-save preference is enabled or the current
-   prompt explicitly authorises the Zotero write.
+7. Resume and complete the original paper analysis using only the evidence
+   actually available, with the appropriate access limitation attached.
+8. After the analysis, identify the important full texts that materially
+   supported it.
+9. Only then enter the Zotero persistence step. Persist those material papers
+   when the user's automatic-save preference is enabled or the current prompt
+   explicitly authorises the Zotero write.
 
 Do not stop after returning a DOI, OA candidate, or proxy link when the user's
 actual request requires reading and analysing the paper.
@@ -81,7 +85,11 @@ known. That decision belongs to this workflow.
 
 ## Preserve important evidence in Zotero
 
-1. Call `zotero_research_status` once near the start of a paper-research task.
+Enter this section only after the original paper analysis has resumed and the
+material sources actually used in that analysis have been selected. Zotero is
+the final preservation step, not a discovery or full-text access step.
+
+1. Call `zotero_research_status` once when entering this persistence step.
    Treat `auto_save_enabled: true` as the user's standing authorisation for this
    workflow. If it is false, write only when the current prompt explicitly asks
    to add or save papers.
