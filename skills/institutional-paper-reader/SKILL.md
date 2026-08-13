@@ -1,15 +1,37 @@
 ---
 name: institutional-paper-reader
-description: Find, identify, access, and analyse scholarly papers using lawful open-access copies or a user's own university library entitlement. Use when a user provides a DOI or title, encounters a paywall, asks to use 경희대/KHU or another supported institutional library, or wants evidence extracted from a paper that may require institutional access. Requires UniPaper Bridge MCP tools for metadata, OA lookup, and access-link construction; never collect credentials or automate licensed downloads.
+description: Automatically find, identify, access, read, and analyse scholarly papers using ordinary research sources, lawful open-access copies, and a user's own university entitlement as a last-mile fallback. Use for paper discovery, literature searches, citation verification, DOI/title requests, full-text evidence extraction, paywalls, or research analysis that depends on primary papers—even when the user does not mention this skill, UniPaper, KHU, or library access. Orchestrate UniPaper Bridge and the local KHU opener without asking the user to choose tools; never collect credentials or automate licensed downloads.
 ---
 
 # Institutional Paper Reader
 
-Help the user move from an uncertain citation or paywall to a verified paper and evidence-backed analysis while keeping all university authentication in the user's browser.
+Act as the paper-access routing layer inside the user's normal research process.
+Move from discovery to verified full-text evidence with as few interruptions as
+possible. Do not make the user invoke UniPaper or the KHU helper by name.
 
 ## Read the boundary first
 
 Read [references/access-boundaries.md](references/access-boundaries.md) before constructing an institutional link or handling licensed material.
+
+## Run the autonomous access ladder
+
+For every paper whose contents materially affect the answer, follow this order:
+
+1. Discover and verify the exact paper through the strongest available ordinary
+   scholarly-search process.
+2. Resolve its DOI and canonical public landing page with `resolve_paper` when
+   available.
+3. Try lawful public full text first, including repository copies and
+   `find_open_access` results.
+4. Verify that the article body or PDF is actually readable. Metadata, snippets,
+   and an abstract do not count as full text.
+5. If full text is unnecessary for the user's question, answer with a clear
+   `abstract/metadata only` limitation and do not open institutional access.
+6. If full text is necessary but remains unreadable, invoke the local
+   institutional fallback automatically as described below.
+
+Do not stop after returning a DOI, OA candidate, or proxy link when the user's
+actual request requires reading and analysing the paper.
 
 ## Resolve the exact work
 
@@ -23,17 +45,36 @@ Read [references/access-boundaries.md](references/access-boundaries.md) before c
 1. Call `find_open_access` with the resolved DOI.
 2. If OpenAlex reports an OA location, prefer the landing page over a bare PDF URL when licence or version details are unclear.
 3. Confirm that the OA title and DOI match. Note whether it appears to be the version of record, accepted manuscript, or another version.
-4. If the tool is not configured or finds no OA copy, continue to institutional access without implying that no lawful copy exists anywhere.
+4. Attempt to read the resulting article body or PDF. If it is inaccessible,
+   incomplete, or only an abstract, continue automatically to institutional
+   access without implying that no lawful copy exists anywhere.
 
-## Use institutional access without handling authentication
+## Invoke local institutional access only as the full-text fallback
 
 1. Call `list_institutions` when the user's campus or supported adapter is unknown.
 2. Ask one short campus question only when it changes the adapter. Reuse the answer in later turns.
-3. Call `build_institution_link` with the selected adapter and exact public publisher URL.
-4. Give the returned access link to the user. Tell them to open it in their own browser and sign in directly with the institution if prompted.
-5. Never ask for, accept, inspect, transmit, or store a password, MFA code, cookie, session token, proxy credential, or browser export.
-6. Never claim that the MCP server inherited the user's Chrome or university session. It did not.
-7. If the user needs full-text analysis, ask them to attach the individually and lawfully downloaded PDF. Do not ask them to upload a licensed PDF publicly or share it with unrelated people.
+3. If `open_khu_paper` is available for the selected KHU campus, call it
+   automatically with the exact canonical public publisher/DOI URL. Do not ask
+   the user to run a command or invoke another skill first.
+4. Call the local opener at most once per paper unless the user asks to retry.
+   It should reuse its dedicated browser session and open the OS credential
+   vault only when the exact KHU login page appears.
+5. If the local opener is unavailable, call `build_institution_link` and give
+   the link as the manual fallback.
+6. Never ask for, accept, inspect, transmit, or store a password, MFA code,
+   cookie, session token, proxy credential, or browser export.
+7. A `browser_opened` result proves only that the local browser opened. It does
+   not prove that Codex read the paper. Never upgrade the evidence label from
+   that status alone.
+8. When licensed full text opens, ask only for the minimum unavoidable handoff:
+   the user privately attaches the individually downloaded PDF to the current
+   conversation. Do not make them repeat the citation or research question.
+9. Resume the original analysis immediately when the PDF arrives. Do not redo
+   discovery unless document identity is inconsistent.
+
+Do not ask the user whether to “try KHU” when full text is required, the paper
+is inaccessible, the local tool is available, and their KHU campus is already
+known. That decision belongs to this workflow.
 
 ## Analyse only the evidence actually available
 

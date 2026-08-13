@@ -1,21 +1,21 @@
 {
   "name": "unipaper-bridge",
   "version": "0.1.0",
-  "description": "Resolve papers, find lawful open access, and hand institutional login back to each user's own browser.",
+  "description": "Research papers autonomously, trying lawful open access first and local institutional access only when full text is otherwise unreadable.",
   "license": "MIT",
   "keywords": ["research", "papers", "library", "open-access", "doi"],
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "UniPaper Bridge",
-    "shortDescription": "Open papers with your own university access",
-    "longDescription": "Identifies scholarly papers, checks lawful open-access locations, and constructs supported university library links without collecting credentials or redistributing licensed PDFs.",
+    "shortDescription": "Research papers with an automatic library fallback",
+    "longDescription": "Runs the normal scholarly research workflow, verifies whether full text is actually readable, and automatically opens the isolated local KHU browser only as a last-mile fallback. It never returns university credentials, cookies, sessions, or licensed full text through MCP.",
     "developerName": "UniPaper Bridge contributors",
     "category": "Research",
     "capabilities": ["Read"],
     "defaultPrompt": [
-      "Find this paper by DOI and check for an open-access copy.",
-      "경희대 서울캠퍼스 도서관 링크로 이 논문을 열 수 있게 도와줘."
+      "Research this paper and automatically use my configured university access only if lawful public full text is unavailable.",
+      "이 주제의 핵심 논문을 조사하고 원문을 못 읽을 때만 설정된 경희대 로컬 접속을 자동으로 사용해줘."
     ],
     "brandColor": "#7C3AED"
   }

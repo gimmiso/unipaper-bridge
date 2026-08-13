@@ -72,6 +72,7 @@ From the repository root:
 
 ```bash
 npm ci
+npm run build
 npm run build:khu-helper
 npm run setup:khu
 ```
@@ -101,17 +102,28 @@ npm run status:khu
 npm run remove:khu
 ```
 
-## Install the local MCP plugin
+## Install the complete UniPaper plugin
 
-After building, add only the local plugin directory as a local marketplace:
+The root plugin manifest includes the ordinary UniPaper MCP, both research
+skills, and this local KHU MCP. After building both Node packages, add the
+repository root as a local marketplace and install one plugin:
 
 ```bash
-codex plugin marketplace add /absolute/path/to/unipaper-bridge/local/khu-auth-mcp
+codex plugin marketplace add /absolute/path/to/unipaper-bridge
+codex plugin add unipaper-bridge@unipaper-local
 ```
 
-Restart the desktop app. The local plugin should advertise exactly one tool,
-`open_khu_paper`. Keep the public cloud bridge connected as before for metadata,
-open-access lookup, and institution-link construction.
+Restart the desktop app and start a new conversation. The installed bundle
+provides the normal paper-research workflow and both MCP servers. The research
+skill first uses ordinary discovery and lawful open full text. It invokes
+`open_khu_paper` automatically only when required full text remains unreadable;
+the user does not choose a separate KHU skill.
+
+The local opener still returns only `browser_opened`, not licensed article text.
+If the analysis requires licensed full text, the only unavoidable handoff is
+for the user to privately attach the individually downloaded PDF from the opened
+browser. The skill then resumes the original analysis without repeating
+discovery.
 
 ## Sharing with other users
 

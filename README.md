@@ -1,6 +1,8 @@
 # UniPaper Bridge
 
-논문 DOI/제목을 식별하고, 합법적인 오픈액세스(OA) 원문을 찾고, 사용자가 **자기 대학 계정으로 자기 브라우저에서** 접속하도록 연결하는 오픈소스 MCP 서버 + ChatGPT/Codex 플러그인입니다.
+논문을 일반 학술검색 흐름으로 조사하고, 합법적인 오픈액세스(OA) 원문을
+먼저 읽은 뒤, 필요한 원문을 끝내 읽을 수 없을 때만 사용자의 로컬 대학
+접속을 자동으로 여는 오픈소스 MCP 서버 + ChatGPT/Codex 플러그인입니다.
 
 현재 0.1 MVP에는 경희대학교 서울캠퍼스와 국제캠퍼스 어댑터가 들어 있습니다. 다른 대학은 공개된 교외접속 규정을 확인한 뒤 `src/institutions.ts`에 어댑터를 추가할 수 있습니다.
 
@@ -39,9 +41,10 @@ flowchart TD
     A["DOI 또는 제목"] --> B["MCP: 논문 식별"]
     B --> C{"OA 원문 있음?"}
     C -->|예| D["합법적 OA 링크"]
-    C -->|아니오| E["대학 접속 링크 생성"]
-    E --> F["사용자 브라우저 로그인"]
-    F --> G["개별 PDF를 대화에 첨부"]
+    C -->|아니오| E{"답변에 원문이 꼭 필요?"}
+    E -->|아니오| I["초록·메타데이터 한계 표시"]
+    E -->|예| F["로컬 KHU 브라우저 자동 실행"]
+    F --> G["사용자가 개별 PDF만 대화에 첨부"]
     D --> H["근거 기반 분석"]
     G --> H
 ```
@@ -69,10 +72,18 @@ flowchart TD
 
 로컬 MCP에는 `open_khu_paper`만 있으며 비밀번호 조회 도구는 없습니다. ID·비밀번호·쿠키·세션은 MCP 결과, 모델 응답, 명령행 인자, `.env`에 들어가지 않습니다. `local/` 전체는 Docker 배포에서 제외되어 클라우드 서버에 포함되지 않습니다.
 
+사용자가 KHU 스킬이나 도구를 따로 선택하는 구조가 아닙니다. 논문 관련
+요청에서 `institutional-paper-reader`가 일반 검색과 공개 원문을 먼저
+처리하고, 실제 원문이 분석에 필요한데 읽을 수 없을 때만
+`open_khu_paper`를 자동 호출합니다. 브라우저가 열렸다는 상태만으로 원문을
+읽었다고 간주하지 않으며, 유료 원문 분석에는 사용자가 그 브라우저에서
+합법적으로 받은 개별 PDF를 현재 대화에 첨부하는 마지막 단계만 남습니다.
+
 처음 한 번만 자신의 컴퓨터 터미널에서 실행하세요. 비밀번호 입력은 화면에 표시되지 않습니다.
 
 ```bash
 npm ci
+npm run build
 npm run build:khu-helper
 npm run setup:khu
 ```
@@ -121,17 +132,19 @@ Inspector에서 command를 `node`, arguments를 `dist/index.js --stdio`로 설�
 - `skills/institutional-paper-reader/`: 논문 접근·분석 워크플로
 - `.agents/plugins/marketplace.json`: 로컬 마켓플레이스
 
-먼저 `npm ci && npm run build`를 실행합니다. 그다음 이 저장소를 로컬 마켓플레이스로 추가하고 ChatGPT 데스크톱 앱을 재시작합니다.
+먼저 `npm ci`, `npm run build`, `npm run build:khu-helper`를 실행합니다.
+그다음 저장소 전체를 로컬 마켓플레이스로 추가하고 플러그인 하나를
+설치합니다. 이 한 설치에 두 연구 스킬, 공개 MCP, 로컬 KHU MCP가 모두
+포함됩니다.
 
 ```bash
 codex plugin marketplace add /absolute/path/to/unipaper-bridge
+codex plugin add unipaper-bridge@unipaper-local
 ```
 
-GitHub에 공개한 뒤에는 다른 사람이 다음처럼 추가할 수 있습니다.
-
-```bash
-codex plugin marketplace add OWNER/REPOSITORY
-```
+Git 저장소만 직접 마켓플레이스로 추가하면 빌드 산출물이 없으므로 로컬 MCP를
+실행할 수 없습니다. 다른 사용자도 저장소를 먼저 clone하고 위 빌드 명령을
+실행한 뒤, clone한 절대 경로를 마켓플레이스로 추가해야 합니다.
 
 ## 공개 ChatGPT 플러그인으로 배포
 

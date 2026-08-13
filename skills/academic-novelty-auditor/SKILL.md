@@ -25,7 +25,12 @@ Use the strongest available tool for each stage. Do not pretend an unavailable c
 1. **Elicit or equivalent structured scholarly search** — broad candidate discovery, screening, paper-level field extraction, evidence tables.
 2. **Scite or equivalent citation-context database** — supporting/contrasting citation context, downstream challenges, retractions/editorial concerns, and citation chasing.
 3. **Primary scholarly sources and publisher/index pages** — DOI verification, publication status, venue, final version, recent papers and preprints.
-4. **UniPaper Bridge / `institutional-paper-reader`** — lawful full-text access. Prefer OA first; when paywalled, resolve the exact paper and generate the supported institutional link. For KHU, keep authentication entirely in the user's browser. Never request or store university credentials, MFA, cookies, or session tokens.
+4. **UniPaper Bridge / `institutional-paper-reader`** — lawful full-text access.
+   Prefer OA first. When a decisive paper remains unreadable, let the reader
+   automatically invoke `open_khu_paper` as the last-mile KHU fallback instead
+   of asking the user to choose or name the tool. Keep authentication entirely
+   in the user's browser. Never request or store university credentials, MFA,
+   cookies, or session tokens.
 5. **User-provided PDF/full text** — once the user lawfully obtains an individual paper, analyse Methods, Results, figures/tables, Supplement, Discussion, and Limitations as needed. Abstract-only review is not a substitute.
 6. **Zotero** — use the user's library as the persistent reference source when available. Search it before duplicating work. Add/import verified papers only when the user has explicitly authorised Zotero writes for the current workflow; never redistribute licensed PDFs.
 
@@ -134,10 +139,17 @@ When a relevant paper is paywalled and `institutional-paper-reader` is available
 
 1. Resolve the exact DOI/title.
 2. Check lawful OA first.
-3. If no suitable OA copy is found, construct the supported KHU/institution link.
-4. The user opens the link and logs in in their own browser.
-5. The user attaches the individually obtained PDF if full-text analysis is needed.
-6. Analyse the attached paper and relabel it `FULLTEXT-USER`.
+3. Confirm that the article body is actually unreadable; an abstract or landing
+   page is not full text.
+4. If no suitable OA copy is readable and full text affects the verdict,
+   automatically call `open_khu_paper` when available. Ask the campus once only
+   if the adapter cannot otherwise be selected.
+5. If the local opener is unavailable, construct the supported institution link
+   as the manual fallback.
+6. The user completes any unavoidable browser interaction and privately attaches
+   the individually obtained PDF. Do not ask them to repeat the audit request.
+7. Analyse the attached paper, relabel it `FULLTEXT-USER`, and resume the audit
+   from the blocked competitor.
 
 Never claim that UniPaper Bridge inherited the user's browser session or downloaded the licensed PDF on the user's behalf.
 

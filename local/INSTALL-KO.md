@@ -12,6 +12,7 @@
 
 ```bash
 npm ci
+npm run build
 npm run build:khu-helper
 npm run setup:khu
 ```
@@ -20,14 +21,24 @@ npm run setup:khu
 화면에 표시되지 않으며 확인을 위해 두 번 입력합니다. 채팅, 이메일,
 메신저에는 비밀번호를 보내지 마세요.
 
-빌드가 끝나면 로컬 플러그인을 추가합니다. 아래 경로는 압축을 푼 실제
-폴더의 절대 경로로 바꿉니다.
+빌드가 끝나면 저장소 전체를 로컬 플러그인 마켓플레이스로 추가하고
+UniPaper 플러그인 하나를 설치합니다. 아래 경로는 압축을 푼 실제 폴더의
+절대 경로로 바꿉니다.
 
 ```bash
-codex plugin marketplace add /absolute/path/to/unipaper-bridge/local/khu-auth-mcp
+codex plugin marketplace add /absolute/path/to/unipaper-bridge
+codex plugin add unipaper-bridge@unipaper-local
 ```
 
-Codex 데스크톱 앱을 다시 시작하면 `open_khu_paper`가 표시됩니다.
+Codex 데스크톱 앱을 다시 시작하고 새 대화를 만듭니다. 이 플러그인 하나가
+일반 논문 조사 스킬, 공개 UniPaper MCP, 로컬 `open_khu_paper`를 모두
+연결합니다. 사용자가 KHU 도구를 따로 지시할 필요는 없습니다.
+
+Codex는 일반 학술검색과 합법적인 공개 원문을 먼저 시도합니다. 답변에
+실제 원문이 필요한데 공개 원문을 읽을 수 없을 때만 KHU 전용 브라우저를
+자동으로 엽니다. 유료 원문은 MCP로 복사되지 않으므로, 열린 브라우저에서
+개별 PDF를 합법적으로 받은 뒤 현재 대화에 첨부하는 마지막 동작만 사용자가
+수행합니다. Codex는 그 PDF가 도착하면 원래 분석을 이어갑니다.
 
 ## macOS
 

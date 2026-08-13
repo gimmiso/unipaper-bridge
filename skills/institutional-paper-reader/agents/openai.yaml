@@ -1,3 +1,7 @@
 interface:
   display_name: "Institutional Paper Reader"
-  short_description: "Find papers and open them through your own university access"
+  short_description: "Automatically research and unlock unreadable papers"
+  default_prompt: "Use $institutional-paper-reader to research this topic and automatically fall back to my configured university access only when required full text is unreadable."
+
+policy:
+  allow_implicit_invocation: true

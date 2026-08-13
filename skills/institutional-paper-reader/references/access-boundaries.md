@@ -7,6 +7,8 @@ UniPaper Bridge may:
 - Query public scholarly metadata.
 - Query an open-access index using the server operator's API key.
 - Construct a public institutional proxy or library link from an approved adapter.
+- Launch the optional local KHU browser helper with one approved paper URL when
+  public full text is unavailable and full text is needed.
 
 UniPaper Bridge must not:
 
@@ -16,6 +18,12 @@ UniPaper Bridge must not:
 - Automate licensed downloads or bypass technical controls.
 
 Authentication and any licensed download happen only in the user's browser under the user's own entitlement. The user may then privately attach an individually obtained PDF when the product and licence permit analysis.
+
+The local helper returning `browser_opened` is not evidence that the article
+body was read. The helper does not return credentials, cookies, browser session
+data, or licensed full text through MCP. Treat the paper as abstract/metadata
+only until Codex can inspect a lawful full-text source or a privately attached
+individual PDF.
 
 ## Evidence labels
 

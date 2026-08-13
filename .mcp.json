@@ -2,5 +2,9 @@
   "unipaper-bridge": {
     "command": "node",
     "args": ["${PLUGIN_ROOT}/dist/index.js", "--stdio"]
+  },
+  "unipaper-khu-local": {
+    "command": "node",
+    "args": ["${PLUGIN_ROOT}/local/khu-auth-mcp/dist/index.js"]
   }
 }
