@@ -57,6 +57,32 @@ flowchart TD
 
 모든 도구는 read-only이며, `build_institution_link`는 URL을 서버에서 열지 않습니다.
 
+## 선택 사항: macOS·Windows·Linux 로컬 KHU 로그인 헬퍼
+
+공개 MCP의 인증 경계는 그대로 유지하면서, 사용자 컴퓨터의 운영체제 보안 저장소를 이용하는 별도 로컬 컴포넌트가 [`local/`](local/README.md)에 있습니다. macOS는 Keychain, Windows는 현재 사용자 범위 DPAPI, Linux 데스크톱은 Secret Service를 사용합니다.
+
+```text
+공개 MCP → 경희대 접속 URL만 생성
+로컬 MCP → 네이티브 헬퍼 창만 실행
+격리된 헬퍼 → 전용 브라우저 세션 우선, 필요할 때만 OS 보안 저장소 조회
+```
+
+로컬 MCP에는 `open_khu_paper`만 있으며 비밀번호 조회 도구는 없습니다. ID·비밀번호·쿠키·세션은 MCP 결과, 모델 응답, 명령행 인자, `.env`에 들어가지 않습니다. `local/` 전체는 Docker 배포에서 제외되어 클라우드 서버에 포함되지 않습니다.
+
+처음 한 번만 자신의 컴퓨터 터미널에서 실행하세요. 비밀번호 입력은 화면에 표시되지 않습니다.
+
+```bash
+npm ci
+npm run build:khu-helper
+npm run setup:khu
+```
+
+macOS에서 매번 credential 사용 시 Touch ID를 요구하려면 `npm run setup:khu -- --touch-id`를 사용합니다. Windows와 Linux 설치 조건, 로컬 MCP 설치와 보안 검증 방법은 [`local/README.md`](local/README.md)를 따르세요.
+
+후배에게는 소스 저장소나 릴리스 압축파일만 공유하세요. 설정된 헬퍼, 브라우저 프로필, Keychain/DPAPI/Secret Service 데이터는 공유하지 않으며, 각 사용자가 자신의 컴퓨터에서 자신의 학교 계정으로 `npm run setup:khu`를 실행해야 합니다.
+
+후배에게 전달할 간단한 운영체제별 설명은 [`local/INSTALL-KO.md`](local/INSTALL-KO.md)에 정리되어 있습니다.
+
 ## 로컬 실행 (macOS 포함)
 
 준비물은 Node.js 20 이상과 무료 OpenAlex API 키입니다.
@@ -141,6 +167,8 @@ npm run check
 ```
 
 현재 테스트는 DOI 정규화, Crossref/OpenAlex 응답 변환, URL 안전성, KHU 링크 생성, MCP 도구 스키마와 안전 주석을 검증합니다.
+
+크로스플랫폼 로컬 헬퍼까지 검증하려면 `npm run check:local`을 추가로 실행합니다. 실제 비밀번호 없이 출력 차단, 허용 URL, 세션 우선 접근, 로컬 MCP 도구 계약을 검사합니다.
 
 현재 공개 배포에 사용된 buildless Worker 구현은 [`deploy/sites-worker.js`](deploy/sites-worker.js)에 함께 공개되어 있습니다. Node/Express 서버와 동일한 네 도구 및 브라우저 인증 경계를 유지하며 공개 엔드포인트는 `/api/mcp`입니다.
 

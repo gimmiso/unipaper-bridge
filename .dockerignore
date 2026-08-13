@@ -4,3 +4,4 @@ coverage
 .git
 .env
 npm-debug.log*
+local

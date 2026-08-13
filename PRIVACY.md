@@ -18,3 +18,18 @@ UniPaper Bridge 0.1 is designed as an anonymous, read-only service.
 Queries needed for metadata and open-access lookup are sent to Crossref and OpenAlex under their respective privacy terms. The institutional access link is generated locally and is not opened by this server. Each user signs in directly with their institution in their own browser.
 
 Operators should publish a deployment-specific privacy policy describing hosting logs, retention, contact details, and subprocessors before public plugin submission.
+
+## Optional local helper
+
+The optional local helper is not part of the hosted service. If the user chooses
+to install it, the KHU ID and password are stored only in that user's operating-
+system credential store: a non-synchronizing Keychain item on macOS, a DPAPI
+`CurrentUser`-encrypted local blob on Windows, or the desktop Secret Service on
+Linux. A dedicated local browser profile keeps its own website session. None of
+these values are sent to the UniPaper cloud server, included in MCP responses,
+passed in command-line arguments or environment variables, or written to
+project configuration files.
+
+Each person must run setup on their own computer with their own authorized KHU
+account. The credential store and browser profile are per-user and must not be
+copied, uploaded, or shared with another person.

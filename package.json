@@ -18,11 +18,20 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "build:local:node": "npm ci --prefix local/khu-auth-mcp && npm run build --prefix local/khu-auth-mcp",
+    "build:portable": "npm ci --prefix local/khu-auth-helper-portable && npm run build --prefix local/khu-auth-helper-portable",
+    "build:khu-helper": "node local/scripts/khu-helper.mjs build",
     "dev": "tsx src/index.ts",
     "start": "node dist/index.js",
+    "setup:khu": "node local/scripts/khu-helper.mjs setup",
+    "status:khu": "node local/scripts/khu-helper.mjs status",
+    "remove:khu": "node local/scripts/khu-helper.mjs remove",
     "test": "vitest run",
+    "test:khu-helper": "node local/scripts/khu-helper.mjs test",
+    "test:khu-helper:mac": "swift run --package-path local/khu-auth-helper khu-auth-self-test",
     "test:watch": "vitest",
-    "check": "npm run build && npm test"
+    "check": "npm run build && npm test",
+    "check:local": "npm run build:khu-helper && npm run test:khu-helper"
   },
   "engines": {
     "node": ">=20"

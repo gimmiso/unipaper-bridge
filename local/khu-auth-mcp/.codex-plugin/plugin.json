@@ -1,0 +1,20 @@
+{
+  "name": "unipaper-khu-local",
+  "version": "0.1.0",
+  "description": "Open one paper with KHU access while credentials remain inside this computer.",
+  "license": "MIT",
+  "keywords": ["research", "papers", "library", "credential-vault", "macos", "windows", "linux", "khu"],
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "UniPaper KHU Local",
+    "shortDescription": "Use KHU access without exposing credentials",
+    "longDescription": "Opens a user-selected paper in an isolated local browser helper on macOS, Windows, or Linux. The helper reuses its local session or reads KHU credentials from the operating-system vault without returning them to MCP or the model.",
+    "developerName": "UniPaper Bridge contributors",
+    "category": "Research",
+    "capabilities": ["Read"],
+    "defaultPrompt": [
+      "경희대 서울캠퍼스 계정으로 이 논문을 로컬에서 열어줘."
+    ],
+    "brandColor": "#7C3AED"
+  }
+}
