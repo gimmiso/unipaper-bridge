@@ -1,0 +1,86 @@
+name: Local helper
+
+on:
+  pull_request:
+    paths:
+      - ".codex-plugin/**"
+      - ".mcp.json"
+      - "local/**"
+      - "skills/**"
+      - "test/plugin-packaging.test.ts"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/local-helper.yml"
+  push:
+    branches: [main]
+    paths:
+      - ".codex-plugin/**"
+      - ".mcp.json"
+      - "local/**"
+      - "skills/**"
+      - "test/plugin-packaging.test.ts"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/local-helper.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  plugin-contract:
+    name: Complete plugin contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            local/khu-auth-mcp/package-lock.json
+            local/zotero-mcp/package-lock.json
+            local/draft-audit-mcp/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - run: npm run build:local:node
+      - run: npm test
+
+  portable:
+    name: Portable helper (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            local/khu-auth-helper-portable/package-lock.json
+            local/khu-auth-mcp/package-lock.json
+            local/zotero-mcp/package-lock.json
+            local/draft-audit-mcp/package-lock.json
+      - run: npm ci --prefix local/khu-auth-helper-portable
+      - run: npm run build --prefix local/khu-auth-helper-portable
+      - run: npm test --prefix local/khu-auth-helper-portable
+      - run: npm ci --prefix local/khu-auth-mcp
+      - run: npm run build --prefix local/khu-auth-mcp
+      - run: npm test --prefix local/khu-auth-mcp
+      - run: npm ci --prefix local/zotero-mcp
+      - run: npm run build --prefix local/zotero-mcp
+      - run: npm test --prefix local/zotero-mcp
+      - run: npm ci --prefix local/draft-audit-mcp
+      - run: npm run build --prefix local/draft-audit-mcp
+      - run: npm test --prefix local/draft-audit-mcp
+
+  macos-native:
+    name: Native macOS helper
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift build --package-path local/khu-auth-helper
+      - run: swift run --package-path local/khu-auth-helper khu-auth-self-test

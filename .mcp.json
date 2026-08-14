@@ -2,5 +2,17 @@
   "unipaper-bridge": {
     "command": "node",
     "args": ["${PLUGIN_ROOT}/dist/index.js", "--stdio"]
+  },
+  "unipaper-khu-local": {
+    "command": "node",
+    "args": ["${PLUGIN_ROOT}/local/khu-auth-mcp/dist/index.js"]
+  },
+  "unipaper-zotero-local": {
+    "command": "node",
+    "args": ["${PLUGIN_ROOT}/local/zotero-mcp/dist/index.js"]
+  },
+  "unipaper-draft-audit-local": {
+    "command": "node",
+    "args": ["${PLUGIN_ROOT}/local/draft-audit-mcp/dist/index.js"]
   }
 }

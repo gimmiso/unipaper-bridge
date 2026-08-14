@@ -1,6 +1,6 @@
 ---
 name: academic-novelty-auditor
-description: Audit whether a research idea, thesis question, method, or claimed contribution is genuinely novel using adversarial literature discovery, citation-context checking, lawful full-text access, and evidence-matrix comparison. Use when the user asks whether a study has already been done, wants a research gap or novelty claim tested, needs thesis positioning, literature review coverage, closest-paper comparison, or a reviewer-style novelty challenge. Prefer Elicit for broad structured discovery, Scite for citation-context and contradiction checks, UniPaper Bridge/institutional-paper-reader for lawful full-text access including KHU, and Zotero for the user's verified reference library when those tools are available. Never declare novelty from abstracts alone when the closest competing papers can be checked in full text.
+description: Audit whether a research idea, thesis question, method, or claimed contribution is genuinely novel using adversarial literature discovery, bounded citation-network expansion, citation-context checking, lawful full-text access, and evidence-matrix comparison. Use when the user asks whether a study has already been done, wants a research gap or novelty claim tested, needs thesis positioning, literature review coverage, closest-paper comparison, or a reviewer-style novelty challenge. Prefer Elicit for broad structured discovery, UniPaper Bridge for one-hop earlier/later/similar-work expansion and lawful full-text access including KHU, Scite for citation-context and contradiction checks, and Zotero for the user's verified reference library when those tools are available. Never declare novelty from abstracts alone when the closest competing papers can be checked in full text.
 ---
 
 # Academic Novelty Auditor
@@ -23,11 +23,22 @@ Run an adversarial, evidence-first novelty audit. The goal is not to prove that 
 Use the strongest available tool for each stage. Do not pretend an unavailable connector was used.
 
 1. **Elicit or equivalent structured scholarly search** — broad candidate discovery, screening, paper-level field extraction, evidence tables.
-2. **Scite or equivalent citation-context database** — supporting/contrasting citation context, downstream challenges, retractions/editorial concerns, and citation chasing.
-3. **Primary scholarly sources and publisher/index pages** — DOI verification, publication status, venue, final version, recent papers and preprints.
-4. **UniPaper Bridge / `institutional-paper-reader`** — lawful full-text access. Prefer OA first; when paywalled, resolve the exact paper and generate the supported institutional link. For KHU, keep authentication entirely in the user's browser. Never request or store university credentials, MFA, cookies, or session tokens.
-5. **User-provided PDF/full text** — once the user lawfully obtains an individual paper, analyse Methods, Results, figures/tables, Supplement, Discussion, and Limitations as needed. Abstract-only review is not a substitute.
-6. **Zotero** — use the user's library as the persistent reference source when available. Search it before duplicating work. Add/import verified papers only when the user has explicitly authorised Zotero writes for the current workflow; never redistribute licensed PDFs.
+2. **UniPaper Bridge / `expand_citation_network`** — bounded one-hop
+   expansion from verified seeds into influential references, later citing
+   works, and topic-similar candidates. Deduplicate the groups, and never infer
+   citation stance from an edge alone.
+3. **Scite or equivalent citation-context database** — supporting/contrasting citation context, downstream challenges, retractions/editorial concerns, and citation chasing.
+4. **Primary scholarly sources and publisher/index pages** — DOI verification, publication status, venue, final version, recent papers and preprints.
+5. **UniPaper Bridge / `institutional-paper-reader`** — lawful full-text access.
+   Prefer OA first. When a decisive paper remains unreadable, let the reader
+   automatically invoke `fetch_khu_paper` as the last-mile KHU fallback instead
+   of asking the user to choose or name the tool. Keep authentication entirely
+   in the user's browser. Never request or store university credentials, MFA,
+   cookies, or session tokens.
+6. **Lawful local PDF/full text** — once the local KHU helper or the user lawfully obtains an individual paper, analyse Methods, Results, figures/tables, Supplement, Discussion, and Limitations as needed. Abstract-only review is not a substitute.
+7. **UniPaper Bridge / `build_evidence_matrix`** — after evidence inspection,
+   create the checked cross-paper table before deciding the novelty verdict.
+8. **Zotero** — use the user's library as the persistent reference source when available. Search it before duplicating work. When the user's automatic-save preference is enabled or the current prompt explicitly authorises Zotero writes, save every paper that materially affects the verdict, including closest competitors, reused methods or datasets, and decisive contradictory evidence. Follow `institutional-paper-reader` for DOI-first deduplication and OA, licensed-PDF, and user-PDF attachment rules. Do not save rejected screening candidates or redistribute licensed PDFs.
 
 If Elicit or Scite is unavailable, continue with scholarly web search and primary sources rather than stopping. If institutional access is unavailable, mark the unresolved evidence clearly.
 
@@ -36,7 +47,8 @@ If Elicit or Scite is unavailable, continue with scholarly web search and primar
 Assign exactly one evidence-access label to every paper that appears in the final comparison:
 
 - `FULLTEXT-OA` — lawful open-access full text inspected.
-- `FULLTEXT-USER` — full text supplied by the user after lawful access, including KHU/library access.
+- `FULLTEXT-LICENSED` — full text read locally through the user's own institutional entitlement.
+- `FULLTEXT-USER` — full text supplied directly by the user after lawful access.
 - `ABSTRACT-ONLY` — abstract inspected but full text not available.
 - `METADATA-ONLY` — bibliographic metadata only.
 
@@ -101,12 +113,18 @@ Prioritise direct competitors and methodological precedents for full-text retrie
 
 For the strongest candidates:
 
+- call `expand_citation_network` on one to three verified seeds with
+  `per_relation: 5` before manual backward/forward chasing
 - inspect references for earlier versions of the idea
 - inspect citing papers for extensions, replications, contradictions, and criticism
 - check whether a newer paper already closes the claimed gap
 - verify preprint vs peer-reviewed/version-of-record status
 
-Use Scite when available, but verify critical claims against the underlying papers.
+Treat the first expansion as one hop. Do not expand every returned candidate.
+Run a second hop only for a specific missing lineage or unresolved novelty
+threat. A citation edge is discovery evidence, not proof of support or
+contradiction. Use Scite when available, but verify critical claims against the
+underlying papers.
 
 ### 6. Full-text gate
 
@@ -134,27 +152,43 @@ When a relevant paper is paywalled and `institutional-paper-reader` is available
 
 1. Resolve the exact DOI/title.
 2. Check lawful OA first.
-3. If no suitable OA copy is found, construct the supported KHU/institution link.
-4. The user opens the link and logs in in their own browser.
-5. The user attaches the individually obtained PDF if full-text analysis is needed.
-6. Analyse the attached paper and relabel it `FULLTEXT-USER`.
+3. Confirm that the article body is actually unreadable; an abstract or landing
+   page is not full text.
+4. If no suitable OA copy is readable and full text affects the verdict,
+   automatically call `fetch_khu_paper` once for that paper when available. Ask
+   the campus once only if the adapter cannot otherwise be selected.
+5. Read the managed PDF with `read_khu_paper_pages`, verify identity, and inspect
+   the exact sections needed for the novelty comparison.
+6. If automatic PDF discovery cannot finish, the visible isolated browser may
+   ask the user to click that publisher's PDF control once. Do not ask the user
+   to locate or attach the resulting file.
+7. If the local fetcher is unavailable, construct the supported institution link
+   as the manual fallback.
+8. After reading, relabel it `FULLTEXT-LICENSED`, resume the audit from the
+   blocked competitor, optionally save it to Zotero in `licensed-pdf` mode, and
+   always release the managed temporary PDF.
 
-Never claim that UniPaper Bridge inherited the user's browser session or downloaded the licensed PDF on the user's behalf.
+Never claim that UniPaper Bridge inherited the user's normal browser session.
+The one-paper fetch runs only inside its isolated local helper under the user's
+own entitlement; it is not a hosted or bulk download service.
 
 ### 8. Build the evidence matrix
 
-For every paper that materially affects the verdict, capture:
+Call `build_evidence_matrix` with every paper that materially affects the
+verdict, including the top competitors and decisive methodological precedents.
+Do this after full-text/abstract inspection and before the verdict or Zotero
+persistence. Apply the exact access labels and explicit missing-field statuses
+defined by `institutional-paper-reader`; never infer an unchecked value. Every
+reported substantive field needs a locator. If `ready_for_synthesis` is false,
+fix the evidence defect or make the verdict `PROVISIONAL`.
+
+Use the tool's task, setting, sample, data, method, evaluation, result,
+limitation, access, and locator fields as the source-evidence layer. Then add
+the following audit judgments separately so they are not mistaken for claims
+made by the papers:
 
 | Field | Required content |
 |---|---|
-| Citation | Authors, year, title, venue, DOI |
-| Access | one access label |
-| Task | research task |
-| Data | dataset/domain/sample unit |
-| Method | model/method |
-| Shift/setting | geographic, temporal, domain, OOD, etc. |
-| Evaluation | metrics and validation design |
-| Contribution | what the paper actually claims |
 | Overlap | exact overlap with the proposed study |
 | Difference | substantive difference, not cosmetic wording |
 | Threat level | HIGH / MEDIUM / LOW |

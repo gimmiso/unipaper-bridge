@@ -4,3 +4,9 @@ coverage/
 .env
 .DS_Store
 npm-debug.log*
+local/khu-auth-helper/.build/
+local/khu-auth-helper/build/
+local/khu-auth-mcp/dist/
+local/khu-auth-helper-portable/dist/
+local/zotero-mcp/dist/
+local/draft-audit-mcp/dist/

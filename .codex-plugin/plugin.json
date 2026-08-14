@@ -1,21 +1,21 @@
 {
   "name": "unipaper-bridge",
-  "version": "0.1.0",
-  "description": "Resolve papers, find lawful open access, and hand institutional login back to each user's own browser.",
+  "version": "0.5.0",
+  "description": "Research papers autonomously, build evidence matrices, audit draft claims locally, use lawful institutional access only when needed, and preserve important sources in Zotero with user consent.",
   "license": "MIT",
-  "keywords": ["research", "papers", "library", "open-access", "doi"],
+  "keywords": ["research", "papers", "citations", "draft-audit", "library", "open-access", "doi"],
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "UniPaper Bridge",
-    "shortDescription": "Open papers with your own university access",
-    "longDescription": "Identifies scholarly papers, checks lawful open-access locations, and constructs supported university library links without collecting credentials or redistributing licensed PDFs.",
+    "shortDescription": "Research, evidence, draft audits, and Zotero",
+    "longDescription": "Runs the normal scholarly research workflow, performs bounded citation expansion, verifies readable full text, builds evidence matrices, audits draft claims locally, and uses an isolated KHU helper only as a last-mile fallback. The local helper can fetch, validate, and read bounded pages from one requested licensed PDF, copy it to Zotero after opt-in, and delete its temporary file. Credentials, cookies, sessions, and licensed files never reach the hosted service or GitHub.",
     "developerName": "UniPaper Bridge contributors",
     "category": "Research",
-    "capabilities": ["Read"],
+    "capabilities": ["Read", "Write"],
     "defaultPrompt": [
-      "Find this paper by DOI and check for an open-access copy.",
-      "경희대 서울캠퍼스 도서관 링크로 이 논문을 열 수 있게 도와줘."
+      "Research this paper, build a source-anchored evidence matrix, audit any draft claims locally against exact DOI and source locations, use my configured university access only when needed, and save material sources to Zotero when authorised.",
+      "핵심 논문과 선행·후속 연구를 조사하고 근거표를 만든 뒤, 초안이 있으면 문장별 인용을 로컬에서 DOI·페이지까지 검증하며, 필요한 경우에만 경희대 접속을 쓰고 중요한 원문은 허용된 경우 Zotero에 저장해줘."
     ],
     "brandColor": "#7C3AED"
   }
