@@ -22,7 +22,7 @@ async function call(body: Record<string, unknown>, env: Record<string, string> =
 describe("deployed Sites Worker", () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it("initializes and advertises the five public tools", async () => {
+  it("initializes and advertises the six public tools", async () => {
     const initialized = await call({
       jsonrpc: "2.0",
       id: 1,
@@ -42,9 +42,70 @@ describe("deployed Sites Worker", () => {
       "resolve_paper",
       "expand_citation_network",
       "find_open_access",
+      "build_evidence_matrix",
       "list_institutions",
       "build_institution_link",
     ]);
+  });
+
+  it("builds the same evidence matrix contract in the deployed Worker", async () => {
+    const reported = (value: string) => ({ status: "reported", value });
+    const paper = (doi: string, title: string) => ({
+      doi,
+      title,
+      authors: ["Example Author"],
+      year: 2024,
+      venue: "Example Journal",
+      access_level: "FULLTEXT-OA",
+      is_retracted: false,
+      research_task: reported("Compare an outcome"),
+      setting: reported("East Asia"),
+      sample: reported("500 observations"),
+      data_source: reported("Public dataset"),
+      method: reported("Regression"),
+      evaluation: reported("Held-out validation"),
+      key_findings: reported("The main estimate was positive"),
+      limitations: { status: "not_reported", value: null },
+      evidence_anchors: [
+        {
+          claim: "Study details, method, and result",
+          supports: [
+            "research_task",
+            "setting",
+            "sample",
+            "data_source",
+            "method",
+            "evaluation",
+            "key_findings",
+          ],
+          source_part: "table",
+          locator: "p. 8, Table 2",
+        },
+      ],
+      inclusion_reason: "Directly addresses the research question",
+    });
+    const matrix = await call({
+      jsonrpc: "2.0",
+      id: 8,
+      method: "tools/call",
+      params: {
+        name: "build_evidence_matrix",
+        arguments: {
+          research_question: "How do these papers compare?",
+          papers: [
+            paper("10.1000/first", "First paper"),
+            paper("10.1000/second", "Second paper"),
+          ],
+        },
+      },
+    });
+
+    expect(matrix.body.result.structuredContent).toMatchObject({
+      row_count: 2,
+      quality_summary: { ready_for_synthesis: true, critical_issues: 0 },
+    });
+    expect(matrix.body.result.structuredContent.markdown).toMatch(/Evidence matrix/);
+    expect(matrix.body.result.structuredContent.csv).toMatch(/Evidence locations/);
   });
 
   it("builds browser-only KHU links and rejects literal IP targets", async () => {

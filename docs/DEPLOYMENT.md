@@ -9,8 +9,9 @@
 
 The hosted Worker uses `/api/mcp` because the hosting platform reserves the exact `/mcp` route. This remains a stable Streamable HTTP MCP URL. The Node/Express and Docker variants continue to use `/mcp` by default.
 
-The 0.2 deployment can resolve Crossref metadata, perform low-volume no-key
-OpenAlex citation/OA lookups, and construct KHU links. Set a free
+After it is deployed, the 0.3 Worker can resolve Crossref metadata, perform
+low-volume no-key OpenAlex citation/OA lookups, render checked multi-paper
+evidence matrices, and construct KHU links. Set a free
 `OPENALEX_API_KEY` through the host's secret manager to raise the OpenAlex usage
 budget for shared deployments; do not commit the key.
 
@@ -41,12 +42,12 @@ Do not set `TRUST_PROXY=true` unless every path to the app passes through a trus
 ## Docker
 
 ```bash
-docker build -t unipaper-bridge:0.2.0 .
+docker build -t unipaper-bridge:0.3.0 .
 docker run --rm -p 3000:3000 \
   -e OPENALEX_API_KEY=replace-me \
   -e CROSSREF_MAILTO=team@example.org \
   -e ALLOWED_HOSTS=localhost,127.0.0.1 \
-  unipaper-bridge:0.2.0
+  unipaper-bridge:0.3.0
 ```
 
 For a hosted service, set `ALLOWED_HOSTS` to the real public hostname and terminate TLS at the platform or reverse proxy.
@@ -58,7 +59,10 @@ curl -fsS https://mcp.example.org/healthz
 npx @modelcontextprotocol/inspector@latest
 ```
 
-Use the Inspector to call all five tools with representative, empty, malformed, and not-found inputs. Confirm that no result includes `OPENALEX_API_KEY` or infrastructure secrets.
+Use the Inspector to call all six tools with representative, empty, malformed,
+and not-found inputs. For `build_evidence_matrix`, include valid full-text,
+abstract-only, metadata-only, duplicate, missing-locator, and retracted rows.
+Confirm that no result includes `OPENALEX_API_KEY` or infrastructure secrets.
 
 ## Connect in ChatGPT developer mode
 
@@ -83,6 +87,9 @@ The included `PRIVACY.md` and `TERMS.md` are project templates; publish deployme
 
 ## Authentication decision
 
-The 0.2 tools use public scholarly APIs, local adapter data, and no user-specific server data, so the service can remain anonymous and read-only. Do not add university login to the MCP server.
+The 0.3 tools use public scholarly APIs, local adapter data, and transient
+caller-supplied evidence summaries, with no stored user-specific server data,
+so the service can remain anonymous and read-only. Do not add university login
+to the MCP server.
 
 If a future release reads a user's private Zotero library, cloud drive, or saved papers, protect those tools with OAuth 2.1 and enforce authorization for every request. Keep institutional publisher login in the user's browser even then.

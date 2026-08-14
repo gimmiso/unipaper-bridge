@@ -32,11 +32,15 @@ For every paper whose contents materially affect the answer, follow this order:
    `abstract/metadata only` limitation and do not open institutional access.
 7. If full text is necessary but remains unreadable, invoke the local
    institutional fallback automatically as described below.
-8. Resume and complete the original paper analysis using only the evidence
-   actually available, with the appropriate access limitation attached.
-9. After the analysis, identify the important full texts that materially
+8. Resume the original paper analysis using only the evidence actually
+   available, with the appropriate access limitation attached.
+9. When two or more papers materially affect the answer, call
+   `build_evidence_matrix` before cross-paper synthesis. Resolve any critical
+   quality issues or keep the conclusion explicitly limited.
+10. Complete the synthesis from the checked matrix and individual-paper notes.
+11. After the analysis, identify the important full texts that materially
    supported it.
-10. Only then enter the Zotero persistence step. Persist those material papers
+12. Only then enter the Zotero persistence step. Persist those material papers
    when the user's automatic-save preference is enabled or the current prompt
    explicitly authorises the Zotero write.
 
@@ -115,6 +119,46 @@ Do not ask the user whether to “try KHU” when full text is required, the pap
 is inaccessible, the local tool is available, and their KHU campus is already
 known. That decision belongs to this workflow.
 
+## Build a checked multi-paper evidence matrix
+
+Use this section for literature reviews, competing-paper comparisons,
+research-gap or novelty checks, and any answer in which two or more papers
+materially support the synthesis. Skip it for a single-paper summary.
+
+1. Call `build_evidence_matrix` after the relevant papers have passed through
+   the access ladder and their evidence has been inspected. Include only
+   material papers, not every search candidate or rejected screening result.
+2. Assign exactly one tool access label per row: `FULLTEXT-OA`,
+   `FULLTEXT-USER`, `ABSTRACT-ONLY`, or `METADATA-ONLY`. A browser opening,
+   Zotero record, search snippet, or PDF link alone never earns a full-text
+   label.
+3. For research task, setting, sample, data, method, evaluation, findings, and
+   limitations, use `reported` only for content actually supported by the
+   inspected source. Use `not_reported` only after checking the relevant
+   source, `not_applicable` only when the field genuinely does not apply, and
+   `not_checked` when the evidence was unavailable or not inspected. Never use
+   one status as a nicer-looking substitute for another.
+4. Add evidence anchors for every reported substantive field. Full-text rows
+   should cite the exact page, section, figure, table, or supplement location.
+   Abstract-only rows may use `Abstract`; metadata-only rows may support only
+   bibliographic identity and must not report study details. In each anchor's
+   `supports` list, name every matrix field that the exact location supports;
+   do not use an unrelated locator to clear multiple fields.
+5. Let the tool normalize DOI values and omit DOI/title-year duplicates. Do not
+   merge conflicting duplicate records by guessing; inspect the conflict when
+   it could change the answer.
+6. If `ready_for_synthesis` is false, inspect the named missing or mismatched
+   evidence when possible. Otherwise state the limitation and keep any affected
+   conclusion provisional. Never hide or delete a quality warning merely to
+   obtain a clean table.
+7. Use the returned Markdown table in the answer when it improves readability.
+   Offer or use the returned CSV when the user wants a reusable dataset. The
+   tool formats caller-supplied evidence; it does not read papers, verify claims,
+   save files, or write to Zotero.
+8. Base cross-paper claims on the matrix rows and their anchors. Keep analyst
+   inference separate from each paper's reported claims, then proceed to the
+   normal Zotero material-source selection only after synthesis.
+
 ## Preserve important evidence in Zotero
 
 Enter this section only after the original paper analysis has resumed and the
@@ -160,7 +204,8 @@ the final preservation step, not a discovery or full-text access step.
 
 ## Analyse only the evidence actually available
 
-- Start the answer with one access label: `open full text`, `user-provided full text`, or `abstract/metadata only`.
+- Assign every cited paper one exact access label: `FULLTEXT-OA`,
+  `FULLTEXT-USER`, `ABSTRACT-ONLY`, or `METADATA-ONLY`.
 - Give the full citation and DOI or stable landing page.
 - For full text, anchor important claims to page, section, figure, or table when available.
 - Separate the paper's claims from inference, critique, and recommendations.

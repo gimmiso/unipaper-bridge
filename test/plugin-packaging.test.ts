@@ -60,4 +60,18 @@ describe("complete local plugin packaging", () => {
     expect(skill).toMatch(/Do not save every search result/i);
     expect(skill).toMatch(/DOI-first/i);
   });
+
+  it("builds a checked evidence matrix before multi-paper synthesis and Zotero", async () => {
+    const reader = await repositoryFile("skills/institutional-paper-reader/SKILL.md");
+    const novelty = await repositoryFile("skills/academic-novelty-auditor/SKILL.md");
+
+    expect(reader).toContain("`build_evidence_matrix`");
+    expect(reader).toMatch(/before cross-paper synthesis/i);
+    expect(reader).toMatch(/only after synthesis/i);
+    expect(reader).toMatch(/FULLTEXT-OA/);
+    expect(reader).toMatch(/ready_for_synthesis/);
+    expect(reader).toMatch(/does not read papers/i);
+    expect(novelty).toContain("`build_evidence_matrix`");
+    expect(novelty).toMatch(/before the verdict or Zotero/i);
+  });
 });

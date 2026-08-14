@@ -36,7 +36,9 @@ Use the strongest available tool for each stage. Do not pretend an unavailable c
    in the user's browser. Never request or store university credentials, MFA,
    cookies, or session tokens.
 6. **User-provided PDF/full text** — once the user lawfully obtains an individual paper, analyse Methods, Results, figures/tables, Supplement, Discussion, and Limitations as needed. Abstract-only review is not a substitute.
-7. **Zotero** — use the user's library as the persistent reference source when available. Search it before duplicating work. When the user's automatic-save preference is enabled or the current prompt explicitly authorises Zotero writes, save every paper that materially affects the verdict, including closest competitors, reused methods or datasets, and decisive contradictory evidence. Follow `institutional-paper-reader` for DOI-first deduplication and OA/user-PDF attachment rules. Do not save rejected screening candidates or redistribute licensed PDFs.
+7. **UniPaper Bridge / `build_evidence_matrix`** — after evidence inspection,
+   create the checked cross-paper table before deciding the novelty verdict.
+8. **Zotero** — use the user's library as the persistent reference source when available. Search it before duplicating work. When the user's automatic-save preference is enabled or the current prompt explicitly authorises Zotero writes, save every paper that materially affects the verdict, including closest competitors, reused methods or datasets, and decisive contradictory evidence. Follow `institutional-paper-reader` for DOI-first deduplication and OA/user-PDF attachment rules. Do not save rejected screening candidates or redistribute licensed PDFs.
 
 If Elicit or Scite is unavailable, continue with scholarly web search and primary sources rather than stopping. If institutional access is unavailable, mark the unresolved evidence clearly.
 
@@ -165,18 +167,21 @@ Never claim that UniPaper Bridge inherited the user's browser session or downloa
 
 ### 8. Build the evidence matrix
 
-For every paper that materially affects the verdict, capture:
+Call `build_evidence_matrix` with every paper that materially affects the
+verdict, including the top competitors and decisive methodological precedents.
+Do this after full-text/abstract inspection and before the verdict or Zotero
+persistence. Apply the exact access labels and explicit missing-field statuses
+defined by `institutional-paper-reader`; never infer an unchecked value. Every
+reported substantive field needs a locator. If `ready_for_synthesis` is false,
+fix the evidence defect or make the verdict `PROVISIONAL`.
+
+Use the tool's task, setting, sample, data, method, evaluation, result,
+limitation, access, and locator fields as the source-evidence layer. Then add
+the following audit judgments separately so they are not mistaken for claims
+made by the papers:
 
 | Field | Required content |
 |---|---|
-| Citation | Authors, year, title, venue, DOI |
-| Access | one access label |
-| Task | research task |
-| Data | dataset/domain/sample unit |
-| Method | model/method |
-| Shift/setting | geographic, temporal, domain, OOD, etc. |
-| Evaluation | metrics and validation design |
-| Contribution | what the paper actually claims |
 | Overlap | exact overlap with the proposed study |
 | Difference | substantive difference, not cosmetic wording |
 | Threat level | HIGH / MEDIUM / LOW |

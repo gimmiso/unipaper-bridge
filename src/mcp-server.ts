@@ -1,5 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as z from "zod/v4";
+import { buildEvidenceMatrix } from "./evidence-matrix.js";
 import { publicErrorMessage } from "./errors.js";
 import { buildInstitutionLink, listInstitutions } from "./institutions.js";
 import {
@@ -10,7 +11,7 @@ import {
 } from "./upstreams.js";
 
 export const SERVER_NAME = "unipaper-bridge";
-export const SERVER_VERSION = "0.2.0";
+export const SERVER_VERSION = "0.3.0";
 
 const paperMatchSchema = z.object({
   doi: z.string().nullable(),
@@ -54,6 +55,98 @@ const institutionSchema = z.object({
   working_download_ceiling_per_publisher_per_day: z.number().int(),
 });
 
+const evidenceFieldSchema = z.discriminatedUnion("status", [
+  z.object({ status: z.literal("reported"), value: z.string().min(1).max(1500) }),
+  z.object({ status: z.literal("not_reported"), value: z.null() }),
+  z.object({ status: z.literal("not_applicable"), value: z.null() }),
+  z.object({ status: z.literal("not_checked"), value: z.null() }),
+]);
+
+const evidenceAnchorSchema = z.object({
+  claim: z.string().min(1).max(500),
+  supports: z
+    .array(
+      z.enum([
+        "research_task",
+        "setting",
+        "sample",
+        "data_source",
+        "method",
+        "evaluation",
+        "key_findings",
+        "limitations",
+      ]),
+    )
+    .min(1)
+    .max(8)
+    .describe("The reported matrix fields supported by this exact source location."),
+  source_part: z.enum([
+    "abstract",
+    "main_text",
+    "figure",
+    "table",
+    "supplement",
+    "metadata",
+  ]),
+  locator: z
+    .string()
+    .min(1)
+    .max(300)
+    .describe("An exact page, section, paragraph, figure, table, supplement, or record locator."),
+});
+
+const evidencePaperInputSchema = z.object({
+  doi: z.string().min(1).max(512).nullable().optional(),
+  title: z.string().min(3).max(500),
+  authors: z.array(z.string().min(1).max(200)).max(20).default([]),
+  year: z.number().int().min(1000).max(3000).nullable().default(null),
+  venue: z.string().min(1).max(500).nullable().default(null),
+  access_level: z.enum([
+    "FULLTEXT-OA",
+    "FULLTEXT-USER",
+    "ABSTRACT-ONLY",
+    "METADATA-ONLY",
+  ]),
+  is_retracted: z.boolean().nullable().default(null),
+  research_task: evidenceFieldSchema,
+  setting: evidenceFieldSchema,
+  sample: evidenceFieldSchema,
+  data_source: evidenceFieldSchema,
+  method: evidenceFieldSchema,
+  evaluation: evidenceFieldSchema,
+  key_findings: evidenceFieldSchema,
+  limitations: evidenceFieldSchema,
+  evidence_anchors: z.array(evidenceAnchorSchema).max(10).default([]),
+  inclusion_reason: z.string().min(1).max(1000),
+});
+
+const evidenceRowSchema = evidencePaperInputSchema.extend({
+  row_id: z.string(),
+  doi: z.string().nullable(),
+  authors: z.array(z.string()),
+  year: z.number().int().nullable(),
+  venue: z.string().nullable(),
+  is_retracted: z.boolean().nullable(),
+  evidence_anchors: z.array(evidenceAnchorSchema),
+});
+
+const evidenceIssueSchema = z.object({
+  row_id: z.string(),
+  severity: z.enum(["warning", "critical"]),
+  code: z.enum([
+    "missing_identity",
+    "retracted_source",
+    "missing_evidence_anchor",
+    "unanchored_reported_field",
+    "fulltext_anchor_not_in_body",
+    "abstract_anchor_mismatch",
+    "metadata_anchor_mismatch",
+    "unsupported_metadata_detail",
+    "important_field_not_checked",
+  ]),
+  message: z.string(),
+});
+
 function errorResult(error: unknown) {
   return {
     isError: true as const,
@@ -66,7 +159,7 @@ export function createUniPaperServer(dependencies: ScholarlyDependencies = {}): 
     { name: SERVER_NAME, version: SERVER_VERSION },
     {
       instructions:
-        "Resolve the exact paper first. Expand the citation network when broader literature coverage matters, but never infer support or contradiction from a citation link alone. Then check lawful open access. If no OA copy exists, build an institution link only for an adapter the user selects. The user must authenticate in their own browser. Never request credentials, cookies, MFA codes, proxy sessions, or bulk downloads. Never claim full-text access until the user supplies or opens the full article.",
+        "Resolve the exact paper first. Expand the citation network when broader literature coverage matters, but never infer support or contradiction from a citation link alone. Then check lawful open access. If no OA copy exists, build an institution link only for an adapter the user selects. The user must authenticate in their own browser. Never request credentials, cookies, MFA codes, proxy sessions, or bulk downloads. Never claim full-text access until the user supplies or opens the full article. For multi-paper synthesis, build an evidence matrix only from content actually inspected, preserve exact access labels and locators, and never invent missing fields.",
     },
   );
 
@@ -216,6 +309,65 @@ export function createUniPaperServer(dependencies: ScholarlyDependencies = {}): 
             {
               type: "text",
               text: result.note,
+            },
+          ],
+        };
+      } catch (error) {
+        return errorResult(error);
+      }
+    },
+  );
+
+  server.registerTool(
+    "build_evidence_matrix",
+    {
+      title: "Build a multi-paper evidence matrix",
+      description:
+        "Use this after inspecting two or more papers to deduplicate them, preserve exact full-text/abstract/metadata access labels, render Markdown and CSV comparison tables, and flag unsupported details or missing evidence locations. This tool formats supplied evidence; it does not read papers or verify claims itself.",
+      inputSchema: z.object({
+        research_question: z.string().min(3).max(1000),
+        papers: z.array(evidencePaperInputSchema).min(2).max(30),
+      }),
+      outputSchema: z.object({
+        research_question: z.string(),
+        row_count: z.number().int(),
+        duplicates_omitted: z.array(
+          z.object({
+            input_position: z.number().int(),
+            title: z.string(),
+            duplicate_of: z.string(),
+            matched_by: z.enum(["doi", "title_year"]),
+          }),
+        ),
+        rows: z.array(evidenceRowSchema),
+        quality_summary: z.object({
+          ready_for_synthesis: z.boolean(),
+          critical_issues: z.number().int(),
+          warnings: z.number().int(),
+          fulltext_rows: z.number().int(),
+          limited_access_rows: z.number().int(),
+          rows_with_anchors: z.number().int(),
+        }),
+        quality_issues: z.array(evidenceIssueSchema),
+        markdown: z.string(),
+        csv: z.string(),
+        notes: z.array(z.string()),
+      }),
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
+      },
+    },
+    async ({ research_question, papers }) => {
+      try {
+        const result = buildEvidenceMatrix({ research_question, papers });
+        return {
+          structuredContent: { ...result },
+          content: [
+            {
+              type: "text",
+              text: `Built an evidence matrix with ${result.row_count} distinct papers. Synthesis readiness: ${result.quality_summary.ready_for_synthesis ? "ready" : "needs evidence fixes"}.`,
             },
           ],
         };

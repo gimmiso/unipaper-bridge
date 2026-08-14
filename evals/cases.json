@@ -11,7 +11,11 @@
     },
     {
       "prompt": "DOI 10.7717/peerj.4375를 기준으로 중요한 선행연구, 후속 인용논문, 유사 논문을 찾아서 연구 흐름을 정리해줘",
-      "expected_tools": ["resolve_paper", "expand_citation_network", "find_open_access"]
+      "expected_tools": ["resolve_paper", "expand_citation_network", "find_open_access", "build_evidence_matrix"]
+    },
+    {
+      "prompt": "이 주제의 핵심 논문 여러 편을 읽고 연구지역·표본·데이터·방법·핵심 결과·한계·정확한 페이지를 근거표로 비교해줘",
+      "expected_tools": ["resolve_paper", "find_open_access", "build_evidence_matrix"]
     },
     {
       "prompt": "이 출판사 링크를 경희대 서울캠퍼스 교외접속 링크로 바꿔줘: https://www.nature.com/articles/example",

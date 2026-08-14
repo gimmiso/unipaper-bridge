@@ -10,6 +10,10 @@
 - Citation expansion is bounded to at most ten returned papers per relation and
   at most one hundred scanned references per seed request; it never fetches
   paper content or follows the graph recursively on its own.
+- Evidence matrices are bounded to thirty input papers, ten locators per paper,
+  and size-limited text fields. The tool performs deterministic validation,
+  deduplication, and rendering only; it does not fetch paper content, persist a
+  matrix, or write to Zotero.
 - Hosted MCP tools are read-only and non-destructive.
 
 ## Optional local components

@@ -1,6 +1,6 @@
 # Privacy notice
 
-UniPaper Bridge 0.2 is designed as an anonymous, read-only service.
+UniPaper Bridge 0.3 is designed as an anonymous, read-only service.
 
 ## Data the server receives
 
@@ -8,6 +8,9 @@ UniPaper Bridge 0.2 is designed as an anonymous, read-only service.
 - A DOI when expanding its bounded citation network into references, citing
   works, and topic-similar works.
 - A DOI when looking for a lawful open-access location.
+- For evidence-matrix requests, bibliographic fields, caller-written
+  paraphrased study summaries, explicit missing-field statuses, access labels,
+  and source locators for up to thirty papers.
 - A public publisher or article URL and an institution adapter identifier when building an institutional link.
 - Ordinary server logs configured by the operator, such as timestamps and network addresses.
 
@@ -15,13 +18,14 @@ UniPaper Bridge 0.2 is designed as an anonymous, read-only service.
 
 - University usernames or passwords.
 - MFA codes, cookies, proxy sessions, browser history, or library account data.
-- Paywalled PDFs or their contents.
+- PDF files, full article bodies, or long copied passages.
 
 Queries needed for metadata, citation-network expansion, and open-access lookup
-are sent to Crossref and OpenAlex under their respective privacy terms. The
-institutional access link is generated locally and is not opened by this
-server. Each user signs in directly with their institution in their own
-browser.
+are sent to Crossref and OpenAlex under their respective privacy terms. Evidence
+matrices are validated and rendered in the service process without an upstream
+paper-content call; the service does not persist them. The institutional access
+link is generated locally and is not opened by this server. Each user signs in
+directly with their institution in their own browser.
 
 Operators should publish a deployment-specific privacy policy describing hosting logs, retention, contact details, and subprocessors before public plugin submission.
 

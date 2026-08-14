@@ -6,6 +6,9 @@ UniPaper Bridge may:
 
 - Query public scholarly metadata.
 - Query an open-access index using the server operator's API key.
+- Validate, deduplicate, and format caller-supplied paraphrased evidence fields
+  and exact source locators for up to thirty papers. This operation does not
+  fetch or verify paper content.
 - Construct a public institutional proxy or library link from an approved adapter.
 - Launch the optional local KHU browser helper with one approved paper URL when
   public full text is unavailable and full text is needed.
@@ -38,9 +41,10 @@ individual PDF.
 
 ## Evidence labels
 
-- `open full text`: the article body or PDF was read from a lawful OA location.
-- `user-provided full text`: the user attached a lawfully obtained article and it was read.
-- `abstract/metadata only`: no complete article body was available.
+- `FULLTEXT-OA`: the article body or PDF was read from a lawful OA location.
+- `FULLTEXT-USER`: the user attached a lawfully obtained article and it was read.
+- `ABSTRACT-ONLY`: the abstract, but not the complete article body, was inspected.
+- `METADATA-ONLY`: only bibliographic metadata was inspected.
 
 Never upgrade an evidence label based on a proxy link alone.
 
