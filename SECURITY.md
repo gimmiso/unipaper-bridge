@@ -57,6 +57,14 @@ but it never receives a KHU credential, cookie, proxy session, or browser
 profile. It does not automate licensed downloads, scan download folders, or
 return PDF bytes, local paths, or private library contents to the model.
 
+The draft-audit MCP is a separate local read-only stdio process. It exposes only
+`audit_draft_claims`, has no network or filesystem calls, and does not share code
+paths with the hosted Worker. It validates exact draft offsets and source-anchor
+references, rejects broken IDs, and prevents direct `SUPPORTED` or
+`CONTRADICTED` verdicts unless the evidence has a valid DOI and a non-retracted
+full-text body/table/figure/supplement anchor. Abstract evidence is downgraded;
+metadata and retracted evidence are excluded from semantic verification.
+
 ## Operator responsibilities
 
 - Keep dependencies updated and run `npm audit` plus the full test suite before deployment.

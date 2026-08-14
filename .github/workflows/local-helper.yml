@@ -3,14 +3,24 @@ name: Local helper
 on:
   pull_request:
     paths:
+      - ".codex-plugin/**"
+      - ".mcp.json"
       - "local/**"
+      - "skills/**"
+      - "test/plugin-packaging.test.ts"
       - "package.json"
+      - "package-lock.json"
       - ".github/workflows/local-helper.yml"
   push:
     branches: [main]
     paths:
+      - ".codex-plugin/**"
+      - ".mcp.json"
       - "local/**"
+      - "skills/**"
+      - "test/plugin-packaging.test.ts"
       - "package.json"
+      - "package-lock.json"
       - ".github/workflows/local-helper.yml"
 
 permissions:
@@ -47,6 +57,7 @@ jobs:
             local/khu-auth-helper-portable/package-lock.json
             local/khu-auth-mcp/package-lock.json
             local/zotero-mcp/package-lock.json
+            local/draft-audit-mcp/package-lock.json
       - run: npm ci --prefix local/khu-auth-helper-portable
       - run: npm run build --prefix local/khu-auth-helper-portable
       - run: npm test --prefix local/khu-auth-helper-portable
@@ -56,6 +67,9 @@ jobs:
       - run: npm ci --prefix local/zotero-mcp
       - run: npm run build --prefix local/zotero-mcp
       - run: npm test --prefix local/zotero-mcp
+      - run: npm ci --prefix local/draft-audit-mcp
+      - run: npm run build --prefix local/draft-audit-mcp
+      - run: npm test --prefix local/draft-audit-mcp
 
   macos-native:
     name: Native macOS helper

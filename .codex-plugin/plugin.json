@@ -1,21 +1,21 @@
 {
   "name": "unipaper-bridge",
-  "version": "0.3.0",
-  "description": "Research papers autonomously, expand citation networks, build checked multi-paper evidence matrices, use lawful institutional access only when needed, and preserve important sources in Zotero with user consent.",
+  "version": "0.4.0",
+  "description": "Research papers autonomously, build evidence matrices, audit draft claims locally, use lawful institutional access only when needed, and preserve important sources in Zotero with user consent.",
   "license": "MIT",
-  "keywords": ["research", "papers", "citations", "library", "open-access", "doi"],
+  "keywords": ["research", "papers", "citations", "draft-audit", "library", "open-access", "doi"],
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "UniPaper Bridge",
-    "shortDescription": "Research, evidence tables, access, and Zotero",
-    "longDescription": "Runs the normal scholarly research workflow, performs bounded one-hop expansion into earlier, later, and similar papers, verifies whether full text is actually readable, builds source-anchored multi-paper evidence matrices, automatically opens the isolated local KHU browser only as a last-mile fallback, and saves material sources to the user's local Zotero library after opt-in. It never returns university credentials, cookies, sessions, or licensed full text through MCP.",
+    "shortDescription": "Research, evidence, draft audits, and Zotero",
+    "longDescription": "Runs the normal scholarly research workflow, performs bounded one-hop expansion into earlier, later, and similar papers, verifies readable full text, builds source-anchored evidence matrices, audits unpublished draft claims through a local read-only MCP, opens the isolated local KHU browser only as a last-mile fallback, and saves material sources to local Zotero after opt-in. It never returns university credentials, cookies, sessions, or licensed full text through MCP.",
     "developerName": "UniPaper Bridge contributors",
     "category": "Research",
     "capabilities": ["Read", "Write"],
     "defaultPrompt": [
-      "Research this paper, expand important citation networks, build a source-anchored evidence matrix when comparing papers, use my configured university access only if lawful public full text is unavailable, and save material sources to Zotero when authorised.",
-      "이 주제의 핵심 논문과 선행·후속·유사 연구를 조사하고, 여러 논문은 근거 위치가 있는 표로 비교하며, 원문을 못 읽을 때만 설정된 경희대 로컬 접속을 사용하고, 허용된 경우 중요한 원문을 Zotero에 저장해줘."
+      "Research this paper, build a source-anchored evidence matrix, audit any draft claims locally against exact DOI and source locations, use my configured university access only when needed, and save material sources to Zotero when authorised.",
+      "핵심 논문과 선행·후속 연구를 조사하고 근거표를 만든 뒤, 초안이 있으면 문장별 인용을 로컬에서 DOI·페이지까지 검증하며, 필요한 경우에만 경희대 접속을 쓰고 중요한 원문은 허용된 경우 Zotero에 저장해줘."
     ],
     "brandColor": "#7C3AED"
   }

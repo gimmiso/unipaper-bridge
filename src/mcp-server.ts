@@ -11,7 +11,7 @@ import {
 } from "./upstreams.js";
 
 export const SERVER_NAME = "unipaper-bridge";
-export const SERVER_VERSION = "0.3.0";
+export const SERVER_VERSION = "0.4.0";
 
 const paperMatchSchema = z.object({
   doi: z.string().nullable(),

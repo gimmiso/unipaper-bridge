@@ -22,6 +22,8 @@ const localMCPDirectory = join(localDirectory, "khu-auth-mcp");
 const localMCPEntry = join(localMCPDirectory, "dist", "index.js");
 const zoteroMCPDirectory = join(localDirectory, "zotero-mcp");
 const zoteroMCPEntry = join(zoteroMCPDirectory, "dist", "index.js");
+const draftAuditMCPDirectory = join(localDirectory, "draft-audit-mcp");
+const draftAuditMCPEntry = join(draftAuditMCPDirectory, "dist", "index.js");
 const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
 
 function run(command, args, options = {}) {
@@ -43,6 +45,7 @@ function installAndBuild(packageDirectory) {
 function buildAll() {
   installAndBuild(localMCPDirectory);
   installAndBuild(zoteroMCPDirectory);
+  installAndBuild(draftAuditMCPDirectory);
   installAndBuild(portableDirectory);
   if (process.platform === "darwin") {
     run("sh", [join(macHelperDirectory, "install.sh"), "build"]);
@@ -54,7 +57,8 @@ function ensureBuilt() {
   if (
     !existsSync(expected) ||
     !existsSync(localMCPEntry) ||
-    !existsSync(zoteroMCPEntry)
+    !existsSync(zoteroMCPEntry) ||
+    !existsSync(draftAuditMCPEntry)
   ) {
     buildAll();
   }
@@ -95,9 +99,11 @@ switch (action) {
   case "test":
     installAndBuild(localMCPDirectory);
     installAndBuild(zoteroMCPDirectory);
+    installAndBuild(draftAuditMCPDirectory);
     installAndBuild(portableDirectory);
     run(npmCommand, ["test", "--prefix", localMCPDirectory]);
     run(npmCommand, ["test", "--prefix", zoteroMCPDirectory]);
+    run(npmCommand, ["test", "--prefix", draftAuditMCPDirectory]);
     run(npmCommand, ["test", "--prefix", portableDirectory]);
     if (process.platform === "darwin") {
       run("swift", ["run", "--package-path", macHelperDirectory, "khu-auth-self-test"]);

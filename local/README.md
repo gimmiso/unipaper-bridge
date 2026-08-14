@@ -1,4 +1,4 @@
-# Local KHU authentication and Zotero capture
+# Local KHU authentication, draft auditing, and Zotero capture
 
 This directory is deliberately separate from the public UniPaper Bridge server.
 It contains the only code allowed to read a KHU credential, and that code runs
@@ -12,13 +12,21 @@ local MCP: public paper URL
         -> dedicated browser session first
         -> OS vault only when the KHU login page appears
         -> status only; no credential response path
+
+local draft MCP: unpublished draft + inspected evidence anchors
+        -> exact offset and provenance validation
+        -> conservative sentence verdicts
+        -> no network, files, persistence, or Zotero access
 ```
 
 - `khu-auth-mcp` exposes one action: `open_khu_paper`.
 - `zotero-mcp` exposes Zotero readiness, persisted automatic-save consent, and
   DOI-first deduplicated saves to the currently selected Zotero destination.
+- `draft-audit-mcp` exposes one read-only action: `audit_draft_claims`. It checks
+  sentence offsets, atomic-claim evidence links, DOI and exact locators, access
+  levels, retractions, and status aggregation without saving the draft.
 - It has no credential getter and never starts the helper with an ID or password.
-- Both helpers accept a password only from a no-echo terminal prompt.
+- Both KHU helper implementations accept a password only from a no-echo terminal prompt.
 - macOS stores a non-synchronizing generic-password item under service
   `com.gimmiso.unipaper.khu`. Data Protection Keychain is preferred when the
   signature permits it; ad-hoc personal builds use the encrypted login Keychain.
@@ -81,8 +89,8 @@ npm run build:khu-helper
 npm run setup:khu
 ```
 
-The build command also installs and compiles the local MCP's own dependencies,
-so `local/khu-auth-mcp` remains a self-contained plugin directory.
+The build command also installs and compiles every local MCP's own dependencies,
+so the KHU, Zotero, and draft-audit packages remain self-contained.
 
 The setup command detects the operating system. On Windows and Linux it also
 downloads the Playwright-managed Chromium build. The prompt asks for a KHU ID
@@ -108,8 +116,8 @@ npm run remove:khu
 
 ## Install the complete UniPaper plugin
 
-The root plugin manifest includes the ordinary UniPaper MCP, both research
-skills, and this local KHU MCP. After building both Node packages, add the
+The root plugin manifest includes the ordinary UniPaper MCP, three research
+skills, and the local KHU, draft-audit, and Zotero MCPs. After building, add the
 repository root as a local marketplace and install one plugin:
 
 ```bash
@@ -118,7 +126,7 @@ codex plugin add unipaper-bridge@unipaper-local
 ```
 
 Restart the desktop app and start a new conversation. The installed bundle
-provides the normal paper-research workflow and all three MCP servers. The research
+provides the normal paper-research workflow and all four MCP servers. The research
 skill first uses ordinary discovery and lawful open full text. It invokes
 `open_khu_paper` automatically only when required full text remains unreadable;
 the user does not choose a separate KHU skill.
@@ -128,6 +136,14 @@ If the analysis requires licensed full text, the only unavoidable handoff is
 for the user to privately attach the individually downloaded PDF from the opened
 browser. The skill then resumes the original analysis without repeating
 discovery.
+
+When a user asks to verify a manuscript, thesis, proposal, or literature-review
+draft, `draft-claim-auditor` keeps exact sentence offsets, splits compound
+sentences into atomic claims, compares them with sources actually inspected,
+and sends the structured packet only to the local `audit_draft_claims` tool.
+The tool returns `SUPPORTED`, `PARTIAL`, `CONTRADICTED`, or `UNVERIFIED` with DOI
+and exact page/section/table/figure locations. It does not read files or papers,
+rewrite the draft, call the network, or write to Zotero.
 
 When the user explicitly enables automatic Zotero capture, the preference is
 stored locally without credentials. The workflow then saves only material
@@ -156,8 +172,11 @@ npm run check:local
 ```
 
 The test suite verifies allowlisted output, URL restrictions, process-argument
-redaction, session-first behavior, and the MCP schema on every platform. On
-macOS, include a disposable real Keychain write/read/delete round trip with:
+redaction, session-first behavior, and the MCP schema on every platform. The
+local suite also verifies unpublished-draft non-reflection, exact UTF-16 offset
+matching, atomic-claim aggregation, access-level downgrades, and
+retracted/metadata evidence exclusion. On macOS, include a disposable real
+Keychain write/read/delete round trip with:
 
 ```bash
 KHU_KEYCHAIN_INTEGRATION=1 npm run test:khu-helper:mac

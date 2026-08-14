@@ -10,5 +10,9 @@
   "unipaper-zotero-local": {
     "command": "node",
     "args": ["${PLUGIN_ROOT}/local/zotero-mcp/dist/index.js"]
+  },
+  "unipaper-draft-audit-local": {
+    "command": "node",
+    "args": ["${PLUGIN_ROOT}/local/draft-audit-mcp/dist/index.js"]
   }
 }

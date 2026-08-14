@@ -1,5 +1,5 @@
 const SERVER_NAME = "unipaper-bridge";
-const SERVER_VERSION = "0.3.0";
+const SERVER_VERSION = "0.4.0";
 const MCP_PATH = "/api/mcp";
 const LATEST_PROTOCOL_VERSION = "2025-06-18";
 const SUPPORTED_PROTOCOL_VERSIONS = new Set([

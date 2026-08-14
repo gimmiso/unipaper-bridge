@@ -1,0 +1,7 @@
+interface:
+  display_name: "Draft Claim Auditor"
+  short_description: "Verify draft claims against exact paper evidence"
+  default_prompt: "Use $draft-claim-auditor to check each sentence in this draft against the papers I actually read and report exact DOI and source locations."
+
+policy:
+  allow_implicit_invocation: true

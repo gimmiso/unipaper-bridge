@@ -6,7 +6,7 @@ async function repositoryFile(path: string): Promise<string> {
 }
 
 describe("complete local plugin packaging", () => {
-  it("bundles the public bridge and local KHU opener in one plugin", async () => {
+  it("bundles the public bridge and all local research MCPs in one plugin", async () => {
     const configuration = JSON.parse(await repositoryFile(".mcp.json")) as Record<
       string,
       { command: string; args: string[] }
@@ -16,6 +16,7 @@ describe("complete local plugin packaging", () => {
       "unipaper-bridge",
       "unipaper-khu-local",
       "unipaper-zotero-local",
+      "unipaper-draft-audit-local",
     ]);
     expect(configuration["unipaper-khu-local"]).toEqual({
       command: "node",
@@ -25,6 +26,32 @@ describe("complete local plugin packaging", () => {
       command: "node",
       args: ["${PLUGIN_ROOT}/local/zotero-mcp/dist/index.js"],
     });
+    expect(configuration["unipaper-draft-audit-local"]).toEqual({
+      command: "node",
+      args: ["${PLUGIN_ROOT}/local/draft-audit-mcp/dist/index.js"],
+    });
+  });
+
+  it("audits unpublished draft claims only through the local read-only MCP", async () => {
+    const skill = await repositoryFile("skills/draft-claim-auditor/SKILL.md");
+    const metadata = await repositoryFile("skills/draft-claim-auditor/agents/openai.yaml");
+    const localServer = await repositoryFile("local/draft-audit-mcp/src/server.ts");
+    const localAudit = await repositoryFile("local/draft-audit-mcp/src/audit.ts");
+    const localEntry = await repositoryFile("local/draft-audit-mcp/src/index.ts");
+    const worker = await repositoryFile("deploy/sites-worker.js");
+
+    expect(skill).toContain("`audit_draft_claims`");
+    expect(skill).toMatch(/Never send the full unpublished draft to a hosted/i);
+    expect(skill).toMatch(/does not read papers/i);
+    expect(skill).toMatch(/UTF-16/);
+    expect(metadata).toContain("allow_implicit_invocation: true");
+    expect(localServer).toContain('"audit_draft_claims"');
+    expect(localServer).toMatch(/readOnlyHint: true/);
+    expect(localServer).toMatch(/openWorldHint: false/);
+    for (const implementation of [localServer, localAudit, localEntry]) {
+      expect(implementation).not.toMatch(/(?:node:fs|node:http|node:https|fetch\s*\()/);
+    }
+    expect(worker).not.toContain('name: "audit_draft_claims"');
   });
 
   it("makes KHU an implicit full-text fallback rather than a user-selected step", async () => {

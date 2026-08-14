@@ -1,6 +1,7 @@
 # Privacy notice
 
-UniPaper Bridge 0.3 is designed as an anonymous, read-only service.
+UniPaper Bridge 0.4 is designed as an anonymous, read-only hosted service with
+separate optional local-only components.
 
 ## Data the server receives
 
@@ -19,6 +20,8 @@ UniPaper Bridge 0.3 is designed as an anonymous, read-only service.
 - University usernames or passwords.
 - MFA codes, cookies, proxy sessions, browser history, or library account data.
 - PDF files, full article bodies, or long copied passages.
+- Unpublished draft text submitted for sentence-level citation auditing. The
+  hosted server does not expose `audit_draft_claims`.
 
 Queries needed for metadata, citation-network expansion, and open-access lookup
 are sent to Crossref and OpenAlex under their respective privacy terms. Evidence
@@ -52,3 +55,11 @@ for verified open-access material. It may attach one local PDF only when the
 user lawfully supplied or selected that individual file. Local file paths,
 Zotero library contents, and attachments are not sent to the hosted UniPaper
 server or returned as tool output.
+
+The optional local draft-audit MCP receives only the draft and structured
+source-evidence packet supplied through the local stdio connection. It checks
+exact character offsets, DOI and anchor references, access labels, retraction
+status, and conservative status aggregation. It has no network client, file
+reader/writer, Zotero access, credential access, or persistence layer. It does
+not log or retain the draft after the tool process finishes the request. Draft
+text is never forwarded to the hosted UniPaper server by this component.
