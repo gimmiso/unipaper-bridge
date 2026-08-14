@@ -36,8 +36,14 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            local/khu-auth-mcp/package-lock.json
+            local/zotero-mcp/package-lock.json
+            local/draft-audit-mcp/package-lock.json
       - run: npm ci
       - run: npm run build
+      - run: npm run build:local:node
       - run: npm test
 
   portable:
