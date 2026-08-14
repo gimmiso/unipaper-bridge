@@ -131,7 +131,7 @@ function safeErrorResult(error: unknown) {
 
 export function createDraftAuditServer(): McpServer {
   const server = new McpServer(
-    { name: "unipaper-draft-audit-local", version: "0.1.0" },
+    { name: "unipaper-draft-audit-local", version: "0.2.0" },
     {
       instructions:
         "Audit draft sentences only after the model has inspected the cited sources, split compound sentences into atomic claims, and mapped each semantic relation to an exact evidence anchor. This local tool validates offsets, DOI provenance, access levels, retraction status, and anchor references, then derives conservative sentence statuses. It does not read papers, decide semantic relations, modify drafts, access files, call the network, write to Zotero, or persist draft text.",

@@ -11,6 +11,19 @@ const BLOCKED_SUFFIXES = [
   ".home.arpa",
 ];
 
+function isSafePublicTarget(target: URL): boolean {
+  const host = target.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  return (
+    ["http:", "https:"].includes(target.protocol) &&
+    target.username === "" &&
+    target.password === "" &&
+    host !== "localhost" &&
+    !PROXY_HOSTS.has(host) &&
+    !BLOCKED_SUFFIXES.some((suffix) => host.endsWith(suffix)) &&
+    isIP(host) === 0
+  );
+}
+
 export function validateKHUAccessURL(rawValue: string): URL {
   let accessURL: URL;
   try {
@@ -39,19 +52,25 @@ export function validateKHUAccessURL(rawValue: string): URL {
   } catch {
     throw new HelperError("invalid_access_url");
   }
-  const host = target.hostname.toLowerCase().replace(/^\[|\]$/g, "");
-  if (
-    !["http:", "https:"].includes(target.protocol) ||
-    target.username !== "" ||
-    target.password !== "" ||
-    host === "localhost" ||
-    PROXY_HOSTS.has(host) ||
-    BLOCKED_SUFFIXES.some((suffix) => host.endsWith(suffix)) ||
-    isIP(host) !== 0
-  ) {
+  if (!isSafePublicTarget(target)) {
     throw new HelperError("invalid_access_url");
   }
   return accessURL;
+}
+
+export function validatePublicDownloadURL(rawValue: string): URL {
+  if (rawValue.length > 4_096) throw new HelperError("invalid_access_url");
+  let candidate: URL;
+  try {
+    candidate = new URL(rawValue);
+  } catch {
+    throw new HelperError("invalid_access_url");
+  }
+  if (PROXY_HOSTS.has(candidate.hostname.toLowerCase())) {
+    return validateKHUAccessURL(rawValue);
+  }
+  if (!isSafePublicTarget(candidate)) throw new HelperError("invalid_access_url");
+  return candidate;
 }
 
 export function isKHULoginURL(rawValue: string): boolean {

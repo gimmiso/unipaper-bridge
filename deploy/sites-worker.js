@@ -1,5 +1,5 @@
 const SERVER_NAME = "unipaper-bridge";
-const SERVER_VERSION = "0.4.0";
+const SERVER_VERSION = "0.5.0";
 const MCP_PATH = "/api/mcp";
 const LATEST_PROTOCOL_VERSION = "2025-06-18";
 const SUPPORTED_PROTOCOL_VERSIONS = new Set([
@@ -134,6 +134,7 @@ const institutionSchema = {
 
 const EVIDENCE_ACCESS_LEVELS = [
   "FULLTEXT-OA",
+  "FULLTEXT-LICENSED",
   "FULLTEXT-USER",
   "ABSTRACT-ONLY",
   "METADATA-ONLY",
@@ -772,7 +773,7 @@ function parseEvidencePaper(value, rowId) {
       : normalizeRequired(paper.venue, `${rowId}.venue`, 1, 500);
   if (!EVIDENCE_ACCESS_LEVELS.includes(paper.access_level)) {
     throw new PublicError(
-      `${rowId}.access_level must be FULLTEXT-OA, FULLTEXT-USER, ABSTRACT-ONLY, or METADATA-ONLY.`,
+      `${rowId}.access_level must be FULLTEXT-OA, FULLTEXT-LICENSED, FULLTEXT-USER, ABSTRACT-ONLY, or METADATA-ONLY.`,
     );
   }
   const isRetracted = paper.is_retracted ?? null;

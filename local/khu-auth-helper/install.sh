@@ -19,7 +19,15 @@ build_helper() {
   # File Provider can attach empty Finder metadata while the bundle is created.
   # Removing it after signing preserves the signature and avoids Gatekeeper's
   # "resource fork ... not allowed" rejection.
-  xattr -cr "$app_dir"
+  verify_attempt=1
+  while [ "$verify_attempt" -le 5 ]; do
+    xattr -cr "$app_dir"
+    if codesign --verify --deep --strict "$app_dir" >/dev/null 2>&1; then
+      return 0
+    fi
+    verify_attempt=$((verify_attempt + 1))
+    sleep 1
+  done
   codesign --verify --deep --strict "$app_dir"
 }
 

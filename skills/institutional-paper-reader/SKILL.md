@@ -1,6 +1,6 @@
 ---
 name: institutional-paper-reader
-description: Automatically find, identify, access, read, analyse, and optionally preserve important scholarly papers in Zotero using ordinary research sources, lawful open-access copies, and a user's own university entitlement as a last-mile fallback. Use for paper discovery, literature searches, citation verification, DOI/title requests, full-text evidence extraction, paywalls, research analysis that depends on primary papers, or a standing request to save core research sources—even when the user does not mention this skill, UniPaper, KHU, or library access. Orchestrate UniPaper Bridge, the local KHU opener, and consented Zotero capture without asking the user to choose tools; never collect credentials or automate licensed downloads.
+description: Automatically find, identify, access, read, analyse, and optionally preserve important scholarly papers in Zotero using ordinary research sources, lawful open-access copies, and a user's own university entitlement as a last-mile fallback. Use for paper discovery, literature searches, citation verification, DOI/title requests, full-text evidence extraction, paywalls, research analysis that depends on primary papers, or a standing request to save core research sources—even when the user does not mention this skill, UniPaper, KHU, or library access. Orchestrate UniPaper Bridge, the isolated local KHU one-paper fetcher, bounded local page reading, and consented Zotero capture without asking the user to choose tools; never collect credentials, run bulk downloads, or send licensed files to the hosted service.
 ---
 
 # Institutional Paper Reader
@@ -96,24 +96,41 @@ actual request requires reading and analysing the paper.
 
 1. Call `list_institutions` when the user's campus or supported adapter is unknown.
 2. Ask one short campus question only when it changes the adapter. Reuse the answer in later turns.
-3. If `open_khu_paper` is available for the selected KHU campus, call it
-   automatically with the exact canonical public publisher/DOI URL. Do not ask
-   the user to run a command or invoke another skill first.
-4. Call the local opener at most once per paper unless the user asks to retry.
-   It should reuse its dedicated browser session and open the OS credential
-   vault only when the exact KHU login page appears.
-5. If the local opener is unavailable, call `build_institution_link` and give
-   the link as the manual fallback.
-6. Never ask for, accept, inspect, transmit, or store a password, MFA code,
+3. If `fetch_khu_paper` is available, call it automatically with the exact
+   canonical public publisher/DOI URL and the DOI already verified in discovery.
+   Each call is for exactly one user-requested paper; run calls serially, never
+   as a batch or background crawler.
+4. `fetch_khu_paper` starts the visible local job and returns promptly. Poll
+   `check_khu_paper_fetch` with its `download_id` until it reports `downloaded`
+   or a safe error. Do not start another KHU paper before releasing the current
+   job.
+5. The local helper should reuse its dedicated browser session and open the OS
+   credential vault only when the exact KHU login page appears. A successful
+   result must contain a managed `download_id`, a local PDF path, byte size, and
+   hash, with `credential_exposed: false`.
+6. Call `read_khu_paper_pages` in bounded ranges and inspect the title/author/DOI
+   area before relying on the body. Continue through the sections and exact
+   pages needed for the original question. A valid download alone is not proof
+   that the paper was read.
+7. If automatic PDF discovery cannot complete, let the same isolated browser
+   ask the user for at most one publisher-page PDF click. Do not ask the user to
+   find the downloaded file or attach it to the conversation; the helper must
+   capture and hand off that one file locally.
+8. If `fetch_khu_paper` is unavailable but `open_khu_paper` exists, use the
+   opener only as a degraded manual fallback and state that analysis cannot
+   resume until readable full text is actually available. If neither local tool
+   is available, call `build_institution_link` and give the link.
+9. Never ask for, accept, inspect, transmit, or store a password, MFA code,
    cookie, session token, proxy credential, or browser export.
-7. A `browser_opened` result proves only that the local browser opened. It does
+10. A `browser_opened` result proves only that the local browser opened. It does
    not prove that Codex read the paper. Never upgrade the evidence label from
    that status alone.
-8. When licensed full text opens, ask only for the minimum unavoidable handoff:
-   the user privately attaches the individually downloaded PDF to the current
-   conversation. Do not make them repeat the citation or research question.
-9. Resume the original analysis immediately when the PDF arrives. Do not redo
-   discovery unless document identity is inconsistent.
+11. After bounded page reading verifies the correct article, label it
+    `FULLTEXT-LICENSED` and resume the original analysis immediately. Do not redo
+    discovery unless document identity is inconsistent.
+12. After analysis and any authorised Zotero attachment, always call
+    `release_khu_paper`. If Zotero is unavailable, finish the analysis first and
+    then release the managed temporary file. Never leave it as an unmanaged copy.
 
 Do not ask the user whether to “try KHU” when full text is required, the paper
 is inaccessible, the local tool is available, and their KHU campus is already
@@ -129,7 +146,7 @@ materially support the synthesis. Skip it for a single-paper summary.
    the access ladder and their evidence has been inspected. Include only
    material papers, not every search candidate or rejected screening result.
 2. Assign exactly one tool access label per row: `FULLTEXT-OA`,
-   `FULLTEXT-USER`, `ABSTRACT-ONLY`, or `METADATA-ONLY`. A browser opening,
+   `FULLTEXT-LICENSED`, `FULLTEXT-USER`, `ABSTRACT-ONLY`, or `METADATA-ONLY`. A browser opening,
    Zotero record, search snippet, or PDF link alone never earns a full-text
    label.
 3. For research task, setting, sample, data, method, evaluation, findings, and
@@ -188,24 +205,25 @@ the final preservation step, not a discovery or full-text access step.
    the user lawfully downloaded or supplied. The local tool applies
    `fulltext-user` after successful attachment. Never pass a credential, cookie,
    browser profile, proxy URL, or licensed publisher URL as an attachment source.
-8. For a decisive paywalled paper whose PDF has not been supplied, do not create
-   a metadata-only stub by default. Open the KHU browser and wait for the user to
-   supply the individually downloaded PDF, then use `user-pdf` mode to save the
-   metadata and file together. Use `metadata-only` only when the user explicitly
-   wants a placeholder or the full-text handoff cannot be completed in the
-   current task; the local tool applies `needs-fulltext`. If that placeholder
-   later receives a PDF, require a manual Zotero attachment rather than creating
-   a duplicate.
-9. A successful Zotero save does not prove the full text was read. Keep the
+8. Use `attachment_mode: licensed-pdf` only with the `local_pdf_path` returned by
+   `fetch_khu_paper` for that exact paper. Save it before calling
+   `release_khu_paper`; the Zotero tool copies the file into Zotero and applies
+   `fulltext-licensed`. Never scan Downloads or substitute another local path.
+9. For a decisive paywalled paper that the local helper cannot obtain, use
+   `metadata-only` only when the user explicitly wants a placeholder or the
+   full-text handoff cannot be completed in the current task; the local tool
+   applies `needs-fulltext`. Do not silently downgrade a paper that the answer
+   requires.
+10. A successful Zotero save does not prove the full text was read. Keep the
    evidence-access label based on the content actually inspected.
-10. If Zotero is closed or unavailable, continue the research. Mention the
+11. If Zotero is closed or unavailable, continue the research. Mention the
     unsaved material papers once at the end instead of repeatedly interrupting
     the user.
 
 ## Analyse only the evidence actually available
 
 - Assign every cited paper one exact access label: `FULLTEXT-OA`,
-  `FULLTEXT-USER`, `ABSTRACT-ONLY`, or `METADATA-ONLY`.
+  `FULLTEXT-LICENSED`, `FULLTEXT-USER`, `ABSTRACT-ONLY`, or `METADATA-ONLY`.
 - Give the full citation and DOI or stable landing page.
 - For full text, anchor important claims to page, section, figure, or table when available.
 - Separate the paper's claims from inference, critique, and recommendations.

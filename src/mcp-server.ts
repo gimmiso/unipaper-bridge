@@ -11,7 +11,7 @@ import {
 } from "./upstreams.js";
 
 export const SERVER_NAME = "unipaper-bridge";
-export const SERVER_VERSION = "0.4.0";
+export const SERVER_VERSION = "0.5.0";
 
 const paperMatchSchema = z.object({
   doi: z.string().nullable(),
@@ -103,6 +103,7 @@ const evidencePaperInputSchema = z.object({
   venue: z.string().min(1).max(500).nullable().default(null),
   access_level: z.enum([
     "FULLTEXT-OA",
+    "FULLTEXT-LICENSED",
     "FULLTEXT-USER",
     "ABSTRACT-ONLY",
     "METADATA-ONLY",

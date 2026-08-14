@@ -6,7 +6,7 @@ const LOCAL_API_HEADERS = { "Zotero-API-Version": "3" };
 const CONNECTOR_HEADERS = { "X-Zotero-Connector-API-Version": "3" };
 const MAX_PDF_BYTES = 100 * 1024 * 1024;
 
-export type AttachmentMode = "oa" | "metadata-only" | "user-pdf";
+export type AttachmentMode = "oa" | "metadata-only" | "user-pdf" | "licensed-pdf";
 
 export interface PaperAuthor {
   first_name?: string;
@@ -263,6 +263,7 @@ export class ZoteroLocalClient {
   private zoteroItem(input: SavePaperInput, connectorID: string) {
     const reservedTags = new Set([
       "fulltext-oa",
+      "fulltext-licensed",
       "fulltext-user",
       "needs-fulltext",
     ]);
@@ -362,13 +363,20 @@ export class ZoteroLocalClient {
     const accessTag = attached
       ? input.attachment_mode === "oa"
         ? "fulltext-oa"
-        : "fulltext-user"
+        : input.attachment_mode === "licensed-pdf"
+          ? "fulltext-licensed"
+          : "fulltext-user"
       : "needs-fulltext";
     const tags = Array.from(
       new Set([
         ...(input.tags ?? []).filter(
           (tag) =>
-            !["fulltext-oa", "fulltext-user", "needs-fulltext"].includes(
+            ![
+              "fulltext-oa",
+              "fulltext-licensed",
+              "fulltext-user",
+              "needs-fulltext",
+            ].includes(
               tag.trim().toLowerCase(),
             ),
         ),
@@ -384,8 +392,11 @@ export class ZoteroLocalClient {
   }
 
   async savePaper(input: SavePaperInput): Promise<SavePaperResult> {
-    if (input.attachment_mode !== "user-pdf" && input.local_pdf_path) {
-      throw new Error("local_pdf_path_requires_user_pdf_mode");
+    if (
+      !["user-pdf", "licensed-pdf"].includes(input.attachment_mode) &&
+      input.local_pdf_path
+    ) {
+      throw new Error("local_pdf_path_requires_local_pdf_mode");
     }
     const target = await this.selectedTarget();
     if (!target.editable || !target.libraryEditable) {
@@ -418,7 +429,7 @@ export class ZoteroLocalClient {
     });
 
     let attached = false;
-    if (input.attachment_mode === "user-pdf") {
+    if (["user-pdf", "licensed-pdf"].includes(input.attachment_mode)) {
       try {
         attached = await this.attachUserPdf(sessionID, connectorID, input);
       } catch {

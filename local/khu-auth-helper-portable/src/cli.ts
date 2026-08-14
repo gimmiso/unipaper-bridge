@@ -1,5 +1,10 @@
 import { stderr, stdout } from "node:process";
-import { openKHUAccess, PlaywrightBrowserAdapter, type BrowserAdapter } from "./browser.js";
+import {
+  fetchKHUAccess,
+  openKHUAccess,
+  PlaywrightBrowserAdapter,
+  type BrowserAdapter,
+} from "./browser.js";
 import { HelperError, type CredentialStore, type SupportedPlatform } from "./models.js";
 import { encodedLine, failureResult, successResult } from "./public-output.js";
 import { readAccount, readSecret } from "./secure-prompt.js";
@@ -88,6 +93,18 @@ export async function runCLI(
         );
         return 0;
       }
+      case "fetch": {
+        if (rest.length !== 2) throw new HelperError("invalid_arguments");
+        await fetchKHUAccess(
+          rest[0]!,
+          rest[1]!,
+          dependencies.store,
+          dependencies.browser,
+          dependencies.platform,
+        );
+        dependencies.writeOutput(encodedLine(successResult("downloaded")));
+        return 0;
+      }
       case "help":
       case "--help":
       case "-h":
@@ -96,6 +113,7 @@ export async function runCLI(
             "khu-auth-helper setup",
             "khu-auth-helper status",
             "khu-auth-helper open <KHU access URL>",
+            "khu-auth-helper fetch <KHU access URL> <managed PDF destination>",
             "khu-auth-helper remove --yes",
             "",
             "Credentials are accepted only from a no-echo local terminal prompt.",

@@ -35,7 +35,8 @@ anchor supports a claim.
    institutional fallback only when required. Resume the audit when the lawful
    full text is available.
 3. Include only sources actually checked for the atomic claim. Use exact access
-   labels: `FULLTEXT-OA`, `FULLTEXT-USER`, `ABSTRACT-ONLY`, or `METADATA-ONLY`.
+   labels: `FULLTEXT-OA`, `FULLTEXT-LICENSED`, `FULLTEXT-USER`,
+   `ABSTRACT-ONLY`, or `METADATA-ONLY`.
 4. Create concise paraphrased anchors with the exact page, section, paragraph,
    table, figure, or supplement locator. Do not paste long copyrighted passages.
 5. Verify DOI identity and retraction status. Never use a citation edge, search
@@ -80,7 +81,8 @@ Pay special attention to common overclaims:
    - any atomic claim directly contradicted → `CONTRADICTED`
    - no usable inspected anchor → `UNVERIFIED`
 4. Direct `SUPPORTED` or `CONTRADICTED` requires a valid DOI, non-retracted
-   `FULLTEXT-OA` or `FULLTEXT-USER`, and a body/table/figure/supplement anchor.
+   `FULLTEXT-OA`, `FULLTEXT-LICENSED`, or `FULLTEXT-USER`, and a
+   body/table/figure/supplement anchor.
    Abstract evidence is limited to `PARTIAL`; metadata cannot verify a semantic
    claim.
 5. If `ready_for_use` is false, resolve critical DOI, retraction, access, or

@@ -1,6 +1,6 @@
 # Privacy notice
 
-UniPaper Bridge 0.4 is designed as an anonymous, read-only hosted service with
+UniPaper Bridge 0.5 is designed as an anonymous, read-only hosted service with
 separate optional local-only components.
 
 ## Data the server receives
@@ -43,6 +43,14 @@ these values are sent to the UniPaper cloud server, included in MCP responses,
 passed in command-line arguments or environment variables, or written to
 project configuration files.
 
+When required full text is unavailable publicly, the local KHU helper may obtain
+exactly one requested PDF under the user's own entitlement. It stores the file
+in a random managed temporary directory, validates it locally, returns only the
+managed path and file metadata to the local MCP workflow, and exposes bounded
+page text rather than raw PDF bytes. The workflow deletes that directory after
+analysis or an authorised Zotero attachment. The PDF and extracted page text
+are never sent to the hosted UniPaper service.
+
 Each person must run setup on their own computer with their own authorized KHU
 account. The credential store and browser profile are per-user and must not be
 copied, uploaded, or shared with another person.
@@ -51,10 +59,11 @@ The optional local Zotero MCP talks only to Zotero Desktop on loopback port
 `23119`. After the user opts in, it may read bibliographic metadata for DOI-
 first duplicate detection and write selected research records to the currently
 selected editable library or collection. It asks Zotero to retrieve a PDF only
-for verified open-access material. It may attach one local PDF only when the
-user lawfully supplied or selected that individual file. Local file paths,
-Zotero library contents, and attachments are not sent to the hosted UniPaper
-server or returned as tool output.
+for verified open-access material. It may attach one local PDF when the user
+lawfully supplied it or when the local KHU helper obtained that exact paper.
+Local file paths, Zotero library contents, and attachments are not sent to the
+hosted UniPaper server. A managed KHU path may be passed only between the local
+KHU and Zotero MCPs for that attachment operation.
 
 The optional local draft-audit MCP receives only the draft and structured
 source-evidence packet supplied through the local stdio connection. It checks

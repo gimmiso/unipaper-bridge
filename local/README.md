@@ -11,7 +11,10 @@ local MCP: public paper URL
         -> isolated helper: KHU proxy URL
         -> dedicated browser session first
         -> OS vault only when the KHU login page appears
-        -> status only; no credential response path
+        -> one managed PDF download when required
+        -> PDF validation + bounded local page text
+        -> optional Zotero copy, then temporary-file deletion
+        -> no credential, cookie, session, or raw-PDF response path
 
 local draft MCP: unpublished draft + inspected evidence anchors
         -> exact offset and provenance validation
@@ -19,7 +22,9 @@ local draft MCP: unpublished draft + inspected evidence anchors
         -> no network, files, persistence, or Zotero access
 ```
 
-- `khu-auth-mcp` exposes one action: `open_khu_paper`.
+- `khu-auth-mcp` exposes a one-paper lifecycle: `fetch_khu_paper`,
+  `check_khu_paper_fetch`, `read_khu_paper_pages`, `release_khu_paper`, plus the degraded fallback
+  `open_khu_paper`.
 - `zotero-mcp` exposes Zotero readiness, persisted automatic-save consent, and
   DOI-first deduplicated saves to the currently selected Zotero destination.
 - `draft-audit-mcp` exposes one read-only action: `audit_draft_claims`. It checks
@@ -128,14 +133,19 @@ codex plugin add unipaper-bridge@unipaper-local
 Restart the desktop app and start a new conversation. The installed bundle
 provides the normal paper-research workflow and all four MCP servers. The research
 skill first uses ordinary discovery and lawful open full text. It invokes
-`open_khu_paper` automatically only when required full text remains unreadable;
+`fetch_khu_paper` automatically only when required full text remains unreadable;
 the user does not choose a separate KHU skill.
 
-The local opener still returns only `browser_opened`, not licensed article text.
-If the analysis requires licensed full text, the only unavoidable handoff is
-for the user to privately attach the individually downloaded PDF from the opened
-browser. The skill then resumes the original analysis without repeating
-discovery.
+The local fetcher processes exactly one requested paper per call. It promptly
+returns a random managed identifier so interactive browser time does not hold
+one MCP request open. `check_khu_paper_fetch` returns the local temporary path,
+file size, and hash only after the PDF signature is valid.
+`read_khu_paper_pages` exposes bounded page text,
+not raw PDF bytes. If automatic PDF-control discovery fails, the user may need
+to click the visible publisher PDF button once; they do not locate or attach the
+download in chat. The skill resumes the original analysis, optionally copies
+the verified file into Zotero, and calls `release_khu_paper` to delete the
+temporary directory.
 
 When a user asks to verify a manuscript, thesis, proposal, or literature-review
 draft, `draft-claim-auditor` keeps exact sentence offsets, splits compound
@@ -148,9 +158,9 @@ rewrite the draft, call the network, or write to Zotero.
 When the user explicitly enables automatic Zotero capture, the preference is
 stored locally without credentials. The workflow then saves only material
 papers after DOI-first duplicate checks. Zotero may fetch verified OA files.
-Licensed files remain a user-controlled handoff: the KHU browser opens the
-paper, and only an individual PDF the user lawfully supplies or selects may be
-attached. The Zotero MCP never scans Downloads or receives the KHU session.
+Licensed files remain local and individually scoped: only the exact managed
+path returned for the requested paper may be attached in `licensed-pdf` mode.
+The Zotero MCP never scans Downloads or receives the KHU session.
 
 ## Sharing with other users
 

@@ -59,6 +59,14 @@ struct KHUAuthSelfTest {
         try requireInvalidURL(
             "https://openlink.khu.ac.kr/link.n2s?url=https://webgate.khu.ac.kr/link.n2s"
         )
+        try require(
+            KHUAccessURLPolicy.isSafeDownloadURL("https://publisher.example/paper.pdf"),
+            "Public PDF candidate was rejected"
+        )
+        try require(
+            !KHUAccessURLPolicy.isSafeDownloadURL("http://127.0.0.1/paper.pdf"),
+            "Private PDF candidate was allowed"
+        )
 
         if ProcessInfo.processInfo.environment["KHU_KEYCHAIN_INTEGRATION"] == "1" {
             let service = "com.gimmiso.unipaper.khu.test.\(UUID().uuidString)"
@@ -81,6 +89,6 @@ struct KHUAuthSelfTest {
             try require(loaded.password == password, "Keychain password did not match")
         }
 
-        print("KHU helper security self-test passed (5 checks).")
+        print("KHU helper security self-test passed (6 checks).")
     }
 }

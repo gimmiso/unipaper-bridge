@@ -121,7 +121,7 @@ describe("Zotero local MCP contract", () => {
     expect(store.saves[0]?.attachment_mode).toBe("oa");
   });
 
-  it("requires a PDF path only for user-pdf mode", async () => {
+  it("requires a PDF path for either local PDF mode", async () => {
     const store = new RecordingStore();
     const client = await connectedClient(store);
     const result = await client.callTool({
@@ -133,6 +133,18 @@ describe("Zotero local MCP contract", () => {
     });
     expect(result.isError).toBe(true);
     expect(store.saves).toEqual([]);
+
+    const licensed = await client.callTool({
+      name: "save_research_paper_to_zotero",
+      arguments: {
+        title: "A licensed paper",
+        doi: "10.1000/licensed",
+        attachment_mode: "licensed-pdf",
+        local_pdf_path: "/tmp/unipaper-khu-example/paper.pdf",
+      },
+    });
+    expect(licensed.isError).not.toBe(true);
+    expect(store.saves[0]?.attachment_mode).toBe("licensed-pdf");
   });
 
   it("does not expose underlying local errors", async () => {

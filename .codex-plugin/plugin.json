@@ -1,6 +1,6 @@
 {
   "name": "unipaper-bridge",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Research papers autonomously, build evidence matrices, audit draft claims locally, use lawful institutional access only when needed, and preserve important sources in Zotero with user consent.",
   "license": "MIT",
   "keywords": ["research", "papers", "citations", "draft-audit", "library", "open-access", "doi"],
@@ -9,7 +9,7 @@
   "interface": {
     "displayName": "UniPaper Bridge",
     "shortDescription": "Research, evidence, draft audits, and Zotero",
-    "longDescription": "Runs the normal scholarly research workflow, performs bounded one-hop expansion into earlier, later, and similar papers, verifies readable full text, builds source-anchored evidence matrices, audits unpublished draft claims through a local read-only MCP, opens the isolated local KHU browser only as a last-mile fallback, and saves material sources to local Zotero after opt-in. It never returns university credentials, cookies, sessions, or licensed full text through MCP.",
+    "longDescription": "Runs the normal scholarly research workflow, performs bounded citation expansion, verifies readable full text, builds evidence matrices, audits draft claims locally, and uses an isolated KHU helper only as a last-mile fallback. The local helper can fetch, validate, and read bounded pages from one requested licensed PDF, copy it to Zotero after opt-in, and delete its temporary file. Credentials, cookies, sessions, and licensed files never reach the hosted service or GitHub.",
     "developerName": "UniPaper Bridge contributors",
     "category": "Research",
     "capabilities": ["Read", "Write"],

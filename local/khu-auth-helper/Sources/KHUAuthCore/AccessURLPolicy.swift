@@ -32,6 +32,14 @@ public enum KHUAccessURLPolicy {
         return url
     }
 
+    public static func isSafeDownloadURL(_ rawValue: String) -> Bool {
+        guard let components = URLComponents(string: rawValue) else { return false }
+        if let host = components.host?.lowercased(), proxyHosts.contains(host) {
+            return (try? validate(rawValue)) != nil
+        }
+        return isSafePublicTarget(rawValue)
+    }
+
     private static func isSafePublicTarget(_ rawValue: String) -> Bool {
         guard
             rawValue.count <= 4_096,

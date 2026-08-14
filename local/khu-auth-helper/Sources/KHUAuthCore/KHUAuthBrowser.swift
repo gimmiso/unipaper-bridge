@@ -3,17 +3,25 @@ import Foundation
 import WebKit
 
 @MainActor
-public final class KHUAuthBrowser: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNavigationDelegate, WKUIDelegate {
+public final class KHUAuthBrowser: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNavigationDelegate, WKUIDelegate, WKDownloadDelegate {
     private let accessURL: URL
     private let credentialStore: CredentialStore
+    private let downloadDestination: URL?
     private var credentialAttempted = false
+    private var automaticPdfPages = Set<String>()
+    private(set) var downloadCompleted = false
     private var window: NSWindow?
     private var webView: WKWebView?
     private var statusLabel: NSTextField?
 
-    public init(accessURL: URL, credentialStore: CredentialStore) {
+    public init(
+        accessURL: URL,
+        credentialStore: CredentialStore,
+        downloadDestination: URL? = nil
+    ) {
         self.accessURL = accessURL
         self.credentialStore = credentialStore
+        self.downloadDestination = downloadDestination
     }
 
     public func applicationDidFinishLaunching(_ notification: Notification) {
@@ -65,7 +73,7 @@ public final class KHUAuthBrowser: NSObject, NSApplicationDelegate, NSWindowDele
     }
 
     public func windowWillClose(_ notification: Notification) {
-        NSApp.terminate(nil)
+        NSApp.stop(nil)
     }
 
     public func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation?) {
@@ -80,6 +88,9 @@ public final class KHUAuthBrowser: NSObject, NSApplicationDelegate, NSWindowDele
 
         if isKHULoginPage(url) {
             fillLoginIfNeeded(in: webView)
+        } else if downloadDestination != nil {
+            statusLabel?.stringValue = "이 논문의 PDF 1편을 자동으로 찾고 있습니다…"
+            attemptAutomaticPdf(in: webView, pageURL: url)
         } else {
             statusLabel?.stringValue = "브라우저 세션을 사용 중입니다. 필요한 경우 페이지 안내에 따라 진행하세요."
         }
@@ -113,10 +124,178 @@ public final class KHUAuthBrowser: NSObject, NSApplicationDelegate, NSWindowDele
         return nil
     }
 
+    public func webView(
+        _ webView: WKWebView,
+        decidePolicyFor navigationAction: WKNavigationAction,
+        decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
+    ) {
+        if downloadDestination != nil && navigationAction.shouldPerformDownload {
+            decisionHandler(.download)
+        } else {
+            decisionHandler(.allow)
+        }
+    }
+
+    public func webView(
+        _ webView: WKWebView,
+        decidePolicyFor navigationResponse: WKNavigationResponse,
+        decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void
+    ) {
+        guard downloadDestination != nil else {
+            decisionHandler(.allow)
+            return
+        }
+        let mimeType = navigationResponse.response.mimeType?.lowercased() ?? ""
+        let disposition = (navigationResponse.response as? HTTPURLResponse)?
+            .value(forHTTPHeaderField: "Content-Disposition")?
+            .lowercased() ?? ""
+        if mimeType == "application/pdf" || disposition.contains(".pdf") {
+            decisionHandler(.download)
+        } else {
+            decisionHandler(.allow)
+        }
+    }
+
+    public func webView(
+        _ webView: WKWebView,
+        navigationAction: WKNavigationAction,
+        didBecome download: WKDownload
+    ) {
+        prepare(download)
+    }
+
+    public func webView(
+        _ webView: WKWebView,
+        navigationResponse: WKNavigationResponse,
+        didBecome download: WKDownload
+    ) {
+        prepare(download)
+    }
+
+    public func download(
+        _ download: WKDownload,
+        decideDestinationUsing response: URLResponse,
+        suggestedFilename: String,
+        completionHandler: @escaping (URL?) -> Void
+    ) {
+        guard let destination = downloadDestination else {
+            completionHandler(nil)
+            return
+        }
+        try? FileManager.default.removeItem(at: destination)
+        completionHandler(destination)
+    }
+
+    public func downloadDidFinish(_ download: WKDownload) {
+        guard let destination = downloadDestination, isValidPdf(destination) else {
+            statusLabel?.stringValue = "받은 파일이 PDF가 아닙니다. 다른 PDF 버튼을 눌러 주세요."
+            return
+        }
+        downloadCompleted = true
+        statusLabel?.stringValue = "PDF 1편을 안전한 임시 폴더에 저장했습니다."
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
+            self?.window?.close()
+        }
+    }
+
+    public func download(
+        _ download: WKDownload,
+        didFailWithError error: Error,
+        resumeData: Data?
+    ) {
+        if let destination = downloadDestination {
+            try? FileManager.default.removeItem(at: destination)
+        }
+        statusLabel?.stringValue = "PDF 저장을 완료하지 못했습니다. 페이지의 PDF 버튼을 다시 눌러 주세요."
+    }
+
     private func isKHULoginPage(_ url: URL) -> Bool {
         url.scheme?.lowercased() == "https" &&
             url.host?.lowercased() == "lib.khu.ac.kr" &&
             (url.path == "/login" || url.path.hasPrefix("/login/"))
+    }
+
+    private func prepare(_ download: WKDownload) {
+        guard
+            let source = download.originalRequest?.url?.absoluteString,
+            KHUAccessURLPolicy.isSafeDownloadURL(source)
+        else {
+            download.cancel { _ in }
+            statusLabel?.stringValue = "안전하지 않은 PDF 주소는 저장하지 않았습니다."
+            return
+        }
+        download.delegate = self
+        statusLabel?.stringValue = "PDF 1편을 이 Mac의 임시 폴더에 저장하고 있습니다…"
+    }
+
+    private func isValidPdf(_ url: URL) -> Bool {
+        guard
+            let attributes = try? FileManager.default.attributesOfItem(atPath: url.path),
+            let size = attributes[.size] as? NSNumber,
+            size.int64Value >= 5,
+            size.int64Value <= 100 * 1024 * 1024,
+            let handle = try? FileHandle(forReadingFrom: url)
+        else { return false }
+        defer { try? handle.close() }
+        let header = try? handle.read(upToCount: 5)
+        return header == Data("%PDF-".utf8)
+    }
+
+    private func attemptAutomaticPdf(in webView: WKWebView, pageURL: URL) {
+        let pageKey = pageURL.absoluteString
+        guard automaticPdfPages.insert(pageKey).inserted else {
+            statusLabel?.stringValue = "자동으로 찾지 못하면 이 페이지의 PDF 버튼을 한 번 눌러 주세요."
+            return
+        }
+
+        let script = #"""
+        (() => {
+          const candidates = [];
+          const meta = document.querySelector('meta[name="citation_pdf_url" i]');
+          if (meta?.content) {
+            try {
+              candidates.push({ href: new URL(meta.content, location.href).href, score: 1000 });
+            } catch {}
+          }
+          const elements = Array.from(document.querySelectorAll('a[href]'));
+          for (const element of elements) {
+            const href = element.href;
+            const label = [
+              element.textContent,
+              element.getAttribute('aria-label'),
+              element.getAttribute('title'),
+              href
+            ].filter(Boolean).join(' ').toLowerCase();
+            let score = 0;
+            if (/download\s*(full\s*text\s*)?pdf|pdf\s*download|pdf\s*다운로드/.test(label)) score += 500;
+            if (/view\s*(full\s*text\s*)?pdf|full\s*text\s*pdf|원문\s*보기/.test(label)) score += 420;
+            if (/\bpdf\b/.test(label)) score += 250;
+            if (href && /(?:\.pdf(?:[?#]|$)|\/pdf(?:[/?#]|$)|pdfdownload)/i.test(href)) score += 300;
+            if (element.hasAttribute('download')) score += 250;
+            if (/supplement|supporting|appendix|dataset|citation/.test(label)) score -= 700;
+            if (score > 0) candidates.push({ href, score });
+          }
+          candidates.sort((a, b) => b.score - a.score);
+          const best = candidates[0];
+          return best?.href ?? null;
+        })();
+        """#
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self, weak webView] in
+            guard let self, let webView, webView.url == pageURL else { return }
+            webView.evaluateJavaScript(script) { [weak self, weak webView] result, _ in
+                guard
+                    let href = result as? String,
+                    KHUAccessURLPolicy.isSafeDownloadURL(href),
+                    let candidateURL = URL(string: href)
+                else {
+                    self?.statusLabel?.stringValue =
+                        "자동으로 찾지 못했습니다. 이 페이지의 PDF 버튼을 한 번 눌러 주세요."
+                    return
+                }
+                webView?.load(URLRequest(url: candidateURL))
+            }
+        }
     }
 
     private func fillLoginIfNeeded(in webView: WKWebView) {
@@ -210,10 +389,20 @@ public final class KHUAuthBrowser: NSObject, NSApplicationDelegate, NSWindowDele
 }
 
 @MainActor
-public func runKHUBrowser(accessURL: URL, credentialStore: CredentialStore) {
+public func runKHUBrowser(
+    accessURL: URL,
+    credentialStore: CredentialStore,
+    downloadDestination: URL? = nil
+) -> Bool {
     let application = NSApplication.shared
-    let delegate = KHUAuthBrowser(accessURL: accessURL, credentialStore: credentialStore)
+    let delegate = KHUAuthBrowser(
+        accessURL: accessURL,
+        credentialStore: credentialStore,
+        downloadDestination: downloadDestination
+    )
     application.delegate = delegate
     application.run()
+    let completed = delegate.downloadCompleted
     withExtendedLifetime(delegate) {}
+    return completed
 }

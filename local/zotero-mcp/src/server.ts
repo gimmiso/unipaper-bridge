@@ -41,24 +41,24 @@ const saveInputSchema = z
     language: z.string().max(100).optional(),
     tags: z.array(z.string().min(1).max(100)).max(30).optional(),
     attachment_mode: z
-      .enum(["oa", "metadata-only", "user-pdf"])
+      .enum(["oa", "metadata-only", "user-pdf", "licensed-pdf"])
       .describe(
-        "Use oa only for a verified lawful open-access paper; use user-pdf only for an individual PDF the user lawfully supplied or selected.",
+        "Use oa only for verified lawful open access; user-pdf for an individual PDF supplied by the user; licensed-pdf for one individually requested PDF obtained locally through the user's own institutional entitlement.",
       ),
     local_pdf_path: z.string().max(4_096).optional(),
   })
   .superRefine((value, context) => {
-    if (value.attachment_mode === "user-pdf" && !value.local_pdf_path) {
+    if (["user-pdf", "licensed-pdf"].includes(value.attachment_mode) && !value.local_pdf_path) {
       context.addIssue({
         code: "custom",
-        message: "local_pdf_path is required for user-pdf mode",
+        message: "local_pdf_path is required for local PDF attachment modes",
         path: ["local_pdf_path"],
       });
     }
-    if (value.attachment_mode !== "user-pdf" && value.local_pdf_path) {
+    if (!["user-pdf", "licensed-pdf"].includes(value.attachment_mode) && value.local_pdf_path) {
       context.addIssue({
         code: "custom",
-        message: "local_pdf_path is allowed only in user-pdf mode",
+        message: "local_pdf_path is allowed only in user-pdf or licensed-pdf mode",
         path: ["local_pdf_path"],
       });
     }
@@ -94,10 +94,10 @@ export function createZoteroLocalServer(
   preference: AutoSavePreference = new ZoteroAutoSavePreference(),
 ): McpServer {
   const server = new McpServer(
-    { name: "unipaper-zotero-local", version: "0.1.0" },
+    { name: "unipaper-zotero-local", version: "0.2.0" },
     {
       instructions:
-        "Deduplicate and save research papers to the user's local Zotero Desktop library. Automatic saves require the user's persisted opt-in or an explicit save request in the current conversation. Save only papers that materially support the current research answer. OA mode may retrieve lawful open-access files through Zotero; never use it for paywalled content. User-pdf mode is only for an individual PDF the user lawfully supplied or selected. Never store university credentials, cookies, proxy URLs, or browser sessions.",
+        "Deduplicate and save research papers to the user's local Zotero Desktop library. Automatic saves require persisted opt-in or an explicit current request. Save only material papers. OA mode is only for verified open access. User-pdf is for a user-supplied individual file; licensed-pdf is for one file obtained locally through the user's own entitlement. Never store credentials, cookies, proxy URLs, or browser sessions.",
     },
   );
 

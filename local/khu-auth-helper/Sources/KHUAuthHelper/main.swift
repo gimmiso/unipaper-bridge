@@ -29,8 +29,19 @@ struct KHUAuthHelperCommand {
             case "open":
                 guard arguments.count == 2 else { throw HelperError.invalidArguments }
                 let url = try KHUAccessURLPolicy.validate(arguments[1])
-                runKHUBrowser(accessURL: url, credentialStore: store)
+                _ = runKHUBrowser(accessURL: url, credentialStore: store)
                 emit(PublicResult(status: "browser_closed"))
+            case "fetch":
+                guard arguments.count == 3 else { throw HelperError.invalidArguments }
+                let url = try KHUAccessURLPolicy.validate(arguments[1])
+                let destination = try validateManagedDestination(arguments[2])
+                let downloaded = runKHUBrowser(
+                    accessURL: url,
+                    credentialStore: store,
+                    downloadDestination: destination
+                )
+                guard downloaded else { throw HelperError.downloadFailed }
+                emit(PublicResult(status: "downloaded"))
             case "remove":
                 guard arguments == ["remove", "--yes"] else {
                     throw HelperError.invalidArguments
@@ -82,11 +93,32 @@ struct KHUAuthHelperCommand {
         FileHandle.standardOutput.write(data)
     }
 
+    private static func validateManagedDestination(_ rawPath: String) throws -> URL {
+        guard rawPath.hasPrefix("/") else { throw HelperError.invalidArguments }
+        let destination = URL(fileURLWithPath: rawPath).standardizedFileURL
+        let parent = destination.deletingLastPathComponent()
+        guard
+            destination.lastPathComponent == "paper.pdf",
+            parent.lastPathComponent.hasPrefix("unipaper-khu-"),
+            destination.pathExtension.lowercased() == "pdf"
+        else { throw HelperError.invalidArguments }
+
+        let values = try parent.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
+        guard values.isDirectory == true, values.isSymbolicLink != true else {
+            throw HelperError.invalidArguments
+        }
+        guard !FileManager.default.fileExists(atPath: destination.path) else {
+            throw HelperError.invalidArguments
+        }
+        return destination
+    }
+
     private static func printHelp() {
         let help = """
         khu-keychain-helper setup [--touch-id]
         khu-keychain-helper status
         khu-keychain-helper open <KHU access URL>
+        khu-keychain-helper fetch <KHU access URL> <managed PDF destination>
         khu-keychain-helper remove --yes
 
         Passwords are accepted only through a secure terminal prompt and are never

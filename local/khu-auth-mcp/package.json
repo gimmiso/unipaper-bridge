@@ -1,6 +1,6 @@
 {
   "name": "@unipaper/khu-auth-mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Local MCP launcher for the macOS, Windows, and Linux UniPaper KHU authentication helper.",
   "type": "module",
@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
+    "pdfjs-dist": "4.10.38",
     "zod": "^4.4.3"
   },
   "devDependencies": {

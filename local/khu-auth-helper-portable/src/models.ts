@@ -22,6 +22,8 @@ export type PublicErrorCode =
   | "authentication_cancelled"
   | "browser_not_installed"
   | "browser_launch_failed"
+  | "download_failed"
+  | "download_timeout"
   | "invalid_access_url"
   | "invalid_account"
   | "invalid_arguments"

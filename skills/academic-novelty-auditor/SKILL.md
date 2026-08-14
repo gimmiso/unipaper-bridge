@@ -31,14 +31,14 @@ Use the strongest available tool for each stage. Do not pretend an unavailable c
 4. **Primary scholarly sources and publisher/index pages** — DOI verification, publication status, venue, final version, recent papers and preprints.
 5. **UniPaper Bridge / `institutional-paper-reader`** — lawful full-text access.
    Prefer OA first. When a decisive paper remains unreadable, let the reader
-   automatically invoke `open_khu_paper` as the last-mile KHU fallback instead
+   automatically invoke `fetch_khu_paper` as the last-mile KHU fallback instead
    of asking the user to choose or name the tool. Keep authentication entirely
    in the user's browser. Never request or store university credentials, MFA,
    cookies, or session tokens.
-6. **User-provided PDF/full text** — once the user lawfully obtains an individual paper, analyse Methods, Results, figures/tables, Supplement, Discussion, and Limitations as needed. Abstract-only review is not a substitute.
+6. **Lawful local PDF/full text** — once the local KHU helper or the user lawfully obtains an individual paper, analyse Methods, Results, figures/tables, Supplement, Discussion, and Limitations as needed. Abstract-only review is not a substitute.
 7. **UniPaper Bridge / `build_evidence_matrix`** — after evidence inspection,
    create the checked cross-paper table before deciding the novelty verdict.
-8. **Zotero** — use the user's library as the persistent reference source when available. Search it before duplicating work. When the user's automatic-save preference is enabled or the current prompt explicitly authorises Zotero writes, save every paper that materially affects the verdict, including closest competitors, reused methods or datasets, and decisive contradictory evidence. Follow `institutional-paper-reader` for DOI-first deduplication and OA/user-PDF attachment rules. Do not save rejected screening candidates or redistribute licensed PDFs.
+8. **Zotero** — use the user's library as the persistent reference source when available. Search it before duplicating work. When the user's automatic-save preference is enabled or the current prompt explicitly authorises Zotero writes, save every paper that materially affects the verdict, including closest competitors, reused methods or datasets, and decisive contradictory evidence. Follow `institutional-paper-reader` for DOI-first deduplication and OA, licensed-PDF, and user-PDF attachment rules. Do not save rejected screening candidates or redistribute licensed PDFs.
 
 If Elicit or Scite is unavailable, continue with scholarly web search and primary sources rather than stopping. If institutional access is unavailable, mark the unresolved evidence clearly.
 
@@ -47,7 +47,8 @@ If Elicit or Scite is unavailable, continue with scholarly web search and primar
 Assign exactly one evidence-access label to every paper that appears in the final comparison:
 
 - `FULLTEXT-OA` — lawful open-access full text inspected.
-- `FULLTEXT-USER` — full text supplied by the user after lawful access, including KHU/library access.
+- `FULLTEXT-LICENSED` — full text read locally through the user's own institutional entitlement.
+- `FULLTEXT-USER` — full text supplied directly by the user after lawful access.
 - `ABSTRACT-ONLY` — abstract inspected but full text not available.
 - `METADATA-ONLY` — bibliographic metadata only.
 
@@ -154,16 +155,22 @@ When a relevant paper is paywalled and `institutional-paper-reader` is available
 3. Confirm that the article body is actually unreadable; an abstract or landing
    page is not full text.
 4. If no suitable OA copy is readable and full text affects the verdict,
-   automatically call `open_khu_paper` when available. Ask the campus once only
-   if the adapter cannot otherwise be selected.
-5. If the local opener is unavailable, construct the supported institution link
+   automatically call `fetch_khu_paper` once for that paper when available. Ask
+   the campus once only if the adapter cannot otherwise be selected.
+5. Read the managed PDF with `read_khu_paper_pages`, verify identity, and inspect
+   the exact sections needed for the novelty comparison.
+6. If automatic PDF discovery cannot finish, the visible isolated browser may
+   ask the user to click that publisher's PDF control once. Do not ask the user
+   to locate or attach the resulting file.
+7. If the local fetcher is unavailable, construct the supported institution link
    as the manual fallback.
-6. The user completes any unavoidable browser interaction and privately attaches
-   the individually obtained PDF. Do not ask them to repeat the audit request.
-7. Analyse the attached paper, relabel it `FULLTEXT-USER`, and resume the audit
-   from the blocked competitor.
+8. After reading, relabel it `FULLTEXT-LICENSED`, resume the audit from the
+   blocked competitor, optionally save it to Zotero in `licensed-pdf` mode, and
+   always release the managed temporary PDF.
 
-Never claim that UniPaper Bridge inherited the user's browser session or downloaded the licensed PDF on the user's behalf.
+Never claim that UniPaper Bridge inherited the user's normal browser session.
+The one-paper fetch runs only inside its isolated local helper under the user's
+own entitlement; it is not a hosted or bulk download service.
 
 ### 8. Build the evidence matrix
 

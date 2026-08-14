@@ -7,6 +7,7 @@ export const CLAIM_STATUSES = [
 
 export const ACCESS_LEVELS = [
   "FULLTEXT-OA",
+  "FULLTEXT-LICENSED",
   "FULLTEXT-USER",
   "ABSTRACT-ONLY",
   "METADATA-ONLY",
@@ -625,7 +626,7 @@ export function auditDraftClaims(input: DraftAuditInput): DraftAuditResult {
     markdown: markdownReport(results, issues),
     notes: [
       "The caller performs semantic comparison after inspecting sources; this local tool validates provenance and derives conservative sentence-level statuses.",
-      "SUPPORTED and CONTRADICTED require a valid DOI plus a non-retracted FULLTEXT-OA or FULLTEXT-USER body, table, figure, or supplement anchor.",
+      "SUPPORTED and CONTRADICTED require a valid DOI plus a non-retracted FULLTEXT-OA, FULLTEXT-LICENSED, or FULLTEXT-USER body, table, figure, or supplement anchor.",
       "Abstract-only evidence is limited to PARTIAL, and metadata-only evidence cannot verify a semantic claim.",
       "The tool is local, read-only, stateless, and performs no network, file, Zotero, or credential operation.",
     ],

@@ -93,6 +93,20 @@ describe("draft claim audit", () => {
     expect(result.quality_summary.ready_for_use).toBe(true);
   });
 
+  it("accepts locally inspected licensed full text as direct evidence", () => {
+    const result = auditDraftClaims(
+      oneSentence(
+        "The institutional article reports a positive estimate.",
+        [source({ access_level: "FULLTEXT-LICENSED" })],
+      ),
+    );
+
+    expect(result.results[0]?.status).toBe("SUPPORTED");
+    expect(result.results[0]?.claim_results[0]?.citations[0]?.access_level).toBe(
+      "FULLTEXT-LICENSED",
+    );
+  });
+
   it("marks a compound sentence PARTIAL when only one atomic claim is supported", () => {
     const text = "X increased Y and generalized globally.";
     const input = oneSentence(text, [source()]);

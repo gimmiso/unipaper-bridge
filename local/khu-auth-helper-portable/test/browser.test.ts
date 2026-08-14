@@ -2,7 +2,9 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
+import { validatePublicDownloadURL } from "../src/access-url.js";
 import {
+  fetchKHUAccess,
   openKHUAccess,
   type BrowserAdapter,
   type BrowserContextAdapter,
@@ -32,6 +34,7 @@ class FakeStore implements CredentialStore {
 
 class FakePage implements BrowserPageAdapter {
   submitted: { account: string; password: string } | undefined;
+  downloadedDestination: string | undefined;
 
   constructor(
     private readonly destination: string,
@@ -47,14 +50,21 @@ class FakePage implements BrowserPageAdapter {
     if (this.submitFailure) throw new Error("page contents must remain private");
     this.submitted = { account, password };
   }
+  async downloadSinglePDF(destination: string): Promise<void> {
+    this.downloadedDestination = destination;
+  }
 }
 
 class FakeContext implements BrowserContextAdapter {
+  closed = false;
   constructor(readonly page: FakePage) {}
   async firstPage(): Promise<BrowserPageAdapter> {
     return this.page;
   }
   async waitUntilClosed(): Promise<void> {}
+  async close(): Promise<void> {
+    this.closed = true;
+  }
 }
 
 class FakeBrowser implements BrowserAdapter {
@@ -88,6 +98,22 @@ async function temporaryEnvironment() {
 }
 
 describe("portable browser credential boundary", () => {
+  it("allows only public or exact reviewed proxy PDF candidates", () => {
+    expect(validatePublicDownloadURL("https://publisher.example/paper.pdf").hostname).toBe(
+      "publisher.example",
+    );
+    expect(validatePublicDownloadURL(accessURL).hostname).toBe("openlink.khu.ac.kr");
+    for (const candidate of [
+      "http://127.0.0.1/paper.pdf",
+      "http://2130706433/paper.pdf",
+      "https://files.internal/paper.pdf",
+      "file:///tmp/paper.pdf",
+      "https://openlink.khu.ac.kr/link.n2s?url=http://127.0.0.1/paper.pdf",
+    ]) {
+      expect(() => validatePublicDownloadURL(candidate)).toThrow();
+    }
+  });
+
   it("does not load a credential when an existing session reaches the paper", async () => {
     const store = new FakeStore(credential);
     const browser = new FakeBrowser("https://doi.org/10.1000/example");
@@ -136,5 +162,27 @@ describe("portable browser credential boundary", () => {
 
     expect(result.authentication).toBe("manual_login");
     expect(store.loads).toBe(1);
+  });
+
+  it("hands one managed destination to the browser and closes after capture", async () => {
+    const environment = await temporaryEnvironment();
+    const managedDirectory = await mkdtemp(join(tmpdir(), "unipaper-khu-test-"));
+    cleanup.push(managedDirectory);
+    const destination = join(managedDirectory, "paper.pdf");
+    const store = new FakeStore(credential);
+    const browser = new FakeBrowser("https://publisher.example/article");
+
+    const result = await fetchKHUAccess(
+      accessURL,
+      destination,
+      store,
+      browser,
+      "linux",
+      environment,
+    );
+
+    expect(result.authentication).toBe("existing_session");
+    expect(browser.context.page.downloadedDestination).toBe(destination);
+    expect(browser.context.closed).toBe(true);
   });
 });

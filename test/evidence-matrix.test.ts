@@ -178,4 +178,20 @@ describe("multi-paper evidence matrix", () => {
     expect(result.row_count).toBe(2);
     expect(result.duplicates_omitted).toEqual([]);
   });
+
+  it("treats inspected institutional text as a full-text evidence row", () => {
+    const result = buildEvidenceMatrix({
+      research_question: "Can licensed evidence support synthesis?",
+      papers: [
+        paper({ access_level: "FULLTEXT-LICENSED" }),
+        paper({ doi: "10.1000/oa-control", title: "OA control paper" }),
+      ],
+    });
+
+    expect(result.quality_summary).toMatchObject({
+      ready_for_synthesis: true,
+      fulltext_rows: 2,
+      limited_access_rows: 0,
+    });
+  });
 });

@@ -49,6 +49,7 @@ public enum HelperError: Error, Equatable {
     case keychainUnavailable
     case biometricUnavailable
     case browserLaunchFailed
+    case downloadFailed
 
     public var publicCode: String {
         switch self {
@@ -63,6 +64,7 @@ public enum HelperError: Error, Equatable {
         case .keychainUnavailable: return "keychain_unavailable"
         case .biometricUnavailable: return "biometric_unavailable"
         case .browserLaunchFailed: return "browser_launch_failed"
+        case .downloadFailed: return "download_failed"
         }
     }
 }

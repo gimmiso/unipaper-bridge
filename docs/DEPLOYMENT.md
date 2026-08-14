@@ -9,7 +9,7 @@
 
 The hosted Worker uses `/api/mcp` because the hosting platform reserves the exact `/mcp` route. This remains a stable Streamable HTTP MCP URL. The Node/Express and Docker variants continue to use `/mcp` by default.
 
-After it is deployed, the 0.4 Worker can resolve Crossref metadata, perform
+After it is deployed, the 0.5 Worker can resolve Crossref metadata, perform
 low-volume no-key OpenAlex citation/OA lookups, render checked multi-paper
 evidence matrices, and construct KHU links. Set a free
 `OPENALEX_API_KEY` through the host's secret manager to raise the OpenAlex usage
@@ -42,12 +42,12 @@ Do not set `TRUST_PROXY=true` unless every path to the app passes through a trus
 ## Docker
 
 ```bash
-docker build -t unipaper-bridge:0.4.0 .
+docker build -t unipaper-bridge:0.5.0 .
 docker run --rm -p 3000:3000 \
   -e OPENALEX_API_KEY=replace-me \
   -e CROSSREF_MAILTO=team@example.org \
   -e ALLOWED_HOSTS=localhost,127.0.0.1 \
-  unipaper-bridge:0.4.0
+  unipaper-bridge:0.5.0
 ```
 
 For a hosted service, set `ALLOWED_HOSTS` to the real public hostname and terminate TLS at the platform or reverse proxy.
@@ -87,7 +87,7 @@ The included `PRIVACY.md` and `TERMS.md` are project templates; publish deployme
 
 ## Authentication decision
 
-The 0.4 hosted tools use public scholarly APIs, local adapter data, and transient
+The 0.5 hosted tools use public scholarly APIs, local adapter data, and transient
 caller-supplied evidence summaries, with no stored user-specific server data,
 so the service can remain anonymous and read-only. Do not add university login
 to the MCP server. `audit_draft_claims` is deliberately absent from the hosted

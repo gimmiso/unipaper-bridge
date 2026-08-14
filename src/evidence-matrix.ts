@@ -3,6 +3,7 @@ import { UserInputError } from "./errors.js";
 
 export const EVIDENCE_ACCESS_LEVELS = [
   "FULLTEXT-OA",
+  "FULLTEXT-LICENSED",
   "FULLTEXT-USER",
   "ABSTRACT-ONLY",
   "METADATA-ONLY",

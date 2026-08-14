@@ -9,7 +9,7 @@
 로컬 Zotero에 중복 없이 저장하는 오픈소스 MCP 서버 + ChatGPT/Codex
 플러그인입니다.
 
-현재 0.4에는 제한된 인용 네트워크 확장, 다중 논문 근거표, 로컬 문장별 인용 검증, 경희대학교 서울캠퍼스·국제캠퍼스 어댑터가 들어 있습니다. 다른 대학은 공개된 교외접속 규정을 확인한 뒤 `src/institutions.ts`에 어댑터를 추가할 수 있습니다.
+현재 0.5에는 제한된 인용 네트워크 확장, 다중 논문 근거표, 로컬 문장별 인용 검증, 경희대학교 서울캠퍼스·국제캠퍼스의 1회 1편 원문 확보·읽기·정리 흐름이 들어 있습니다. 다른 대학은 공개된 교외접속 규정을 확인한 뒤 공개 링크와 로컬 헬퍼 어댑터를 추가할 수 있습니다.
 
 ## 바로 연결하기
 
@@ -21,17 +21,17 @@ https://unipaper-bridge-mcp.kimmiso0821.chatgpt.site/api/mcp
 
 상태 페이지는 [unipaper-bridge-mcp.kimmiso0821.chatgpt.site](https://unipaper-bridge-mcp.kimmiso0821.chatgpt.site), 상태 확인 API는 [`/healthz`](https://unipaper-bridge-mcp.kimmiso0821.chatgpt.site/healthz)입니다.
 
-ChatGPT에서 **Settings → Security and login → Developer mode**를 켠 뒤 Plugins에서 새 연결을 추가하고 위 MCP 주소 전체를 입력하세요. 0.4 배포 후에는 `resolve_paper`, `expand_citation_network`, `find_open_access`, `build_evidence_matrix`, `list_institutions`, `build_institution_link` 여섯 공개 도구가 표시되어야 합니다. 미공개 초안을 받는 `audit_draft_claims`는 공개 주소가 아니라 아래 로컬 플러그인 설치에서만 제공됩니다.
+ChatGPT에서 **Settings → Security and login → Developer mode**를 켠 뒤 Plugins에서 새 연결을 추가하고 위 MCP 주소 전체를 입력하세요. 0.5 배포 후에는 `resolve_paper`, `expand_citation_network`, `find_open_access`, `build_evidence_matrix`, `list_institutions`, `build_institution_link` 여섯 공개 도구가 표시되어야 합니다. 미공개 초안을 받는 `audit_draft_claims`와 기관 원문을 다루는 도구는 공개 주소가 아니라 아래 로컬 플러그인 설치에서만 제공됩니다.
 
-0.4 공개 서버 코드는 여섯 도구를 제공합니다. OpenAlex 키가 없어도
+0.5 공개 서버 코드는 여섯 도구를 제공합니다. OpenAlex 키가 없어도
 `expand_citation_network`와 `find_open_access`가 낮은 무키 사용량 한도에서
 동작하지만, 여러 사람이 쓰는 배포에는 무료 `OPENALEX_API_KEY` 설정을
-강력히 권장합니다. 공개 주소의 실제 도구 목록은 운영자가 0.4를 배포한 뒤
+강력히 권장합니다. 공개 주소의 실제 도구 목록은 운영자가 0.5를 배포한 뒤
 갱신됩니다.
 
 ## 안전 경계
 
-이 서버가 하는 일:
+공개 서버가 하는 일:
 
 - Crossref에서 DOI/제목 메타데이터 조회
 - OpenAlex에서 중요한 선행 참고문헌·후속 인용논문·주제 유사논문을 제한된
@@ -41,12 +41,12 @@ ChatGPT에서 **Settings → Security and login → Developer mode**를 켠 뒤 
   근거 위치 검증, Markdown·CSV 근거표 생성
 - 공식 대학 프록시 규칙으로 사용자에게 보여 줄 접속 링크 생성
 
-이 서버가 하지 않는 일:
+공개 서버가 하지 않는 일:
 
 - 대학 아이디·비밀번호·MFA·쿠키·세션 수집
 - 사용자의 Chrome 로그인 세션 상속
 - 대학 또는 출판사에 대신 로그인
-- 유료 PDF 다운로드·저장·재배포
+- 유료 PDF 다운로드·저장·재배포 또는 로컬 원문 수신
 - 저널/이슈 단위 자동 다운로드
 - 사용자의 미공개 논문 초안 수집·저장·문장별 검증
 
@@ -63,8 +63,10 @@ flowchart TD
     E -->|예| H["원래 논문 분석 계속"]
     E -->|아니오·원문 불필요| F["초록·메타데이터 한계 표시"]
     E -->|아니오·원문 필요| G["KHU 브라우저 자동 실행"]
-    G --> I["사용자가 합법적으로 받은 개별 PDF 제공"]
-    I --> H
+    G --> I["구독 권한·PDF 링크 확인"]
+    I --> V["논문 PDF 1편을 로컬 임시 저장·검증"]
+    V --> W["필요한 페이지를 로컬에서 읽기"]
+    W --> H
     F --> H
     H --> P{"2편 이상을 실질적으로 비교함?"}
     P -->|예| Q["접근 수준·방법·결과·한계·근거 위치 표"]
@@ -78,6 +80,7 @@ flowchart TD
     U --> J
     J --> K["Zotero에서 DOI 우선 중복 확인"]
     K --> L["서지정보 + 확보된 합법적 원문 저장"]
+    L --> X["KHU 임시 PDF 삭제"]
 ```
 
 Zotero는 학술검색이나 원문 접근을 대신하는 단계가 아닙니다. 원래 논문
@@ -89,7 +92,7 @@ Zotero는 학술검색이나 원문 접근을 대신하는 단계가 아닙니�
 한 편의 논문 조사, 유료 원문 기관접속, 여러 논문 비교, 초안 문장별 인용
 검증, 체계적 문헌고찰과 결과물 출력 계획, Windows·macOS·Linux 공동 사용
 과정은 [연구 워크플로 사용 시나리오](docs/WORKFLOW_SCENARIOS.md)에 예시 요청과
-함께 정리되어 있습니다. 문서에서는 현재 0.4 기능과 계획 기능을 명확히
+함께 정리되어 있습니다. 문서에서는 현재 0.5 기능과 계획 기능을 명확히
 구분합니다.
 
 ## 제공 도구
@@ -111,12 +114,14 @@ Zotero는 학술검색이나 원문 접근을 대신하는 단계가 아닙니�
 
 ```text
 공개 MCP → 경희대 접속 URL만 생성
-로컬 MCP → 네이티브 헬퍼 창만 실행
+로컬 KHU MCP → 한 논문의 확보·검증·페이지 읽기·임시파일 삭제
 격리된 헬퍼 → 전용 브라우저 세션 우선, 필요할 때만 OS 보안 저장소 조회
 로컬 초안 MCP → 원문 근거 참조와 문장 상태 검증, 네트워크·파일·저장 없음
 ```
 
-KHU MCP에는 `open_khu_paper`만 있으며 비밀번호 조회 도구는 없습니다.
+KHU MCP에는 `fetch_khu_paper`, `check_khu_paper_fetch`,
+`read_khu_paper_pages`, `release_khu_paper`, 하위 호환용 `open_khu_paper`가 있으며 비밀번호 조회
+도구는 없습니다. 한 호출은 사용자가 요청한 논문 1편만 처리합니다.
 별도의 Zotero MCP는 Zotero Desktop의 로컬 포트만 사용해 상태 확인, 자동
 저장 동의 설정, DOI 우선 중복 확인 및 개별 논문 저장을 수행합니다.
 별도의 draft-audit MCP는 초안 문자 위치와 원자 주장, DOI, 접근 라벨,
@@ -137,15 +142,19 @@ ID·비밀번호·쿠키·세션은 MCP 결과, 모델 응답, 명령행 인자,
 읽거나 빈칸을 추측하지 않습니다. 초안 검증 요청에서는 복합 문장을 원자
 주장으로 나누고, 읽은 원문의 정확한 앵커와 의미를 비교한 뒤 로컬
 `audit_draft_claims`가 출처 경계와 최종 문장 상태를 보수적으로 계산합니다.
-실제 원문이 분석에 필요한데 읽을 수 없을 때만
-`open_khu_paper`를 자동 호출합니다. 브라우저가 열렸다는 상태만으로 원문을
-읽었다고 간주하지 않으며, 유료 원문 분석에는 사용자가 그 브라우저에서
-합법적으로 받은 개별 PDF를 현재 대화에 첨부하는 마지막 단계만 남습니다.
+실제 원문이 분석에 필요한데 읽을 수 없을 때만 `fetch_khu_paper`를 자동
+호출합니다. 격리 브라우저가 구독 권한과 PDF 링크를 확인해 논문 1편을 임시
+폴더에 저장하고, 로컬 MCP가 PDF 서명·크기·해시를 확인한 뒤 필요한 페이지를
+최대 10쪽씩 읽습니다. 자동 탐색이 어려운 출판사에서는 같은 브라우저 안에서
+PDF 버튼 한 번만 사용자에게 요청할 수 있지만, 다운로드 파일을 찾아 대화에
+첨부하게 하지는 않습니다. 분석과 허용된 Zotero 저장이 끝나면 임시파일을
+삭제합니다.
 Zotero 자동 저장을 켜면 최종 답변에 실제로 쓰인 핵심 논문, 가장 가까운
 경쟁 논문, 재사용한 방법·데이터 논문만 저장합니다. 검색 결과 전체나 다른
 논문의 참고문헌 목록을 일괄 수집하지 않습니다. 공개 원문은 Zotero의 OA
-검색으로 첨부하고, 유료 원문은 사용자가 합법적으로 받은 개별 PDF만
-첨부합니다.
+검색으로 첨부하고, 기관 구독 원문은 로컬 헬퍼가 그 논문 1편에 대해 만든
+검증된 임시 경로만 `licensed-pdf` 모드로 첨부합니다. PDF·쿠키·세션은 공개
+서버나 GitHub로 전송되지 않습니다.
 
 처음 한 번만 자신의 컴퓨터 터미널에서 실행하세요. 비밀번호 입력은 화면에 표시되지 않습니다.
 
